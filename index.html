@@ -112,11 +112,8 @@ footer {
 </section>
 
 <!-- SUPABASE CONNECTION -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script>
-const SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL";
-const SUPABASE_KEY = "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY";
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script
+const SUPABASE_KEY =sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp
 const APP_URL = "https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/";
 
 const supabaseClient = window.supabase.createClient(
@@ -139,12 +136,13 @@ document.getElementById("register-form").addEventListener("submit", async functi
 
   try {
     const { data, error } = await supabaseClient.auth.signUp({
-      email: email,
+      email: email,001ivyrose@gmail.com
       password: password,
       options: {
         data: { full_name: fullName },
         emailRedirectTo: APP_URL
-      }
+      }https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/";
+
     });
 
     if (error) throw error;
