@@ -91,6 +91,77 @@ footer {
 <p>Contact us to find an available stall.</p>
 </section>
 
+<!-- CUSTOMER REGISTRATION -->
+<section id="customer-registration" style="max-width:420px;margin:30px auto;padding:25px;background:white;border-radius:12px;box-shadow:0 2px 12px #ddd;font-family:Arial">
+  <h2>Create Customer Account</h2>
+  <form id="register-form">
+    <label>Full Name</label>
+    <input id="full-name" type="text" placeholder="Enter your full name" required style="width:100%;padding:12px;margin:8px 0">
+
+    <label>Email Address</label>
+    <input id="email" type="email" placeholder="Enter your email" required style="width:100%;padding:12px;margin:8px 0">
+
+    <label>Password</label>
+    <input id="password" type="password" placeholder="At least 6 characters" minlength="6" required style="width:100%;padding:12px;margin:8px 0">
+
+    <button type="submit" style="width:100%;padding:13px;background:#087f5b;color:white;border:0;border-radius:6px;font-size:16px">
+      Create Account
+    </button>
+  </form>
+  <p id="register-message" role="status"></p>
+</section>
+
+<!-- SUPABASE CONNECTION -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_KEY = "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+document.getElementById("register-form").addEventListener("submit", async function(event) {
+  event.preventDefault();
+
+  const message = document.getElementById("register-message");
+  const button = this.querySelector("button");
+
+  const fullName = document.getElementById("full-name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  button.disabled = true;
+  message.textContent = "Creating your account...";
+
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: window.location.href
+      }
+    });
+
+    if (error) throw error;
+
+    message.textContent = data.user?.identities?.length === 0
+      ? "This email may already be registered. Please try logging in."
+      : "Registration successful! Check your email for a verification link.";
+
+    this.reset();
+
+  } catch (error) {
+    message.textContent = "Registration failed: " + error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+</script>
+
 <footer>
 <p>© 2026 VENDOR. All Rights Reserved.</p>
 </footer>
