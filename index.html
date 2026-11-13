@@ -88,11 +88,11 @@ Already registered? Login
 <script>
 const SUPABASE_URL = "https://ddyornrjnthwkjfvauff.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp";
-
+const SITE_URL = window.location.origin;
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
-);const SITE_URL = window.location.origin;
+);
 console.log("Supabase URL:", SUPABASE_URL);
 console.log("Supabase client:", supabaseClient);
 
