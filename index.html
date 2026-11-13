@@ -1,170 +1,188 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VENDOR - Market Stalls</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BUSINESS - Vendor Stall Booking</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body {
-  margin: 0;
   font-family: Arial, sans-serif;
-  background: #f5f5f5;
+  background: #f3f5f4;
+  margin: 0;
   color: #222;
 }
 header {
-  background: #172554;
+  background: #123b30;
   color: white;
   padding: 25px;
   text-align: center;
 }
-nav {
-  background: #1e3a8a;
-  padding: 15px;
-  text-align: center;
-}
-nav a {
-  color: white;
-  margin: 10px;
-  text-decoration: none;
-}
-.hero {
-  padding: 65px 20px;
-  text-align: center;
+main {
+  max-width: 420px;
   background: white;
+  margin: 35px auto;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px #0002;
 }
-.hero h1 { color: #172554; }
-.btn {
-  display: inline-block;
-  background: #f59e0b;
-  color: #111;
-  padding: 14px 25px;
-  text-decoration: none;
+input {
+  width: 100%;
+  padding: 13px;
+  margin: 9px 0;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
   border-radius: 6px;
 }
-section {
-  padding: 30px 20px;
-  text-align: center;
-}
-footer {
-  background: #172554;
+button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #13734e;
   color: white;
-  padding: 20px;
-  text-align: center;
+  font-size: 16px;
+}
+.switch {
+  background: #e9efec;
+  color: #123b30;
+}
+#message {
+  margin-top: 15px;
+  overflow-wrap: anywhere;
 }
 </style>
 </head>
 <body>
 
 <header>
-<h1>VENDOR</h1>
-<p>Your Space. Your Business. Your Opportunity.</p>
+<h1>BUSINESS</h1>
+<p>Vendor Stall Booking Platform</p>
 </header>
 
-<nav>
-<a href="#home">Home</a>
-<a href="#about">About</a>
-<a href="#services">Our Stalls</a>
-<a href="#contact">Contact</a>
-</nav>
+<main>
+<h2 id="heading">Customer Registration</h2>
 
-<div class="hero" id="home">
-<h1>Find the Perfect Space for Your Business</h1>
-<p>We connect vendors with market stalls and business opportunities.</p>
-<a class="btn" href="#contact">Book a Stall</a>
-</div>
+<form id="authForm">
+<input id="email" type="email"
+placeholder="Email address" required>
 
-<section id="about">
-<h2>About VENDOR</h2>
-<p>VENDOR provides market stall spaces for businesses and independent traders in Kenya.</p>
-</section>
+<input id="password" type="password"
+placeholder="Password (minimum 6 characters)"
+minlength="6" required>
 
-<section id="services">
-<h2>Our Market Stalls</h2>
-<p>Choose a stall that suits your business and budget.</p>
-<p>Pricing depends on stall size.</p>
-<p>We welcome all types of vendors.</p>
-</section>
+<button id="submitButton" type="submit">
+Create Account
+</button>
+</form>
 
-<section id="contact">
-<h2>Contact Us</h2>
-<p>Interested in joining VENDOR?</p>
-<p>Contact us to find an available stall.</p>
-</section>
+<button class="switch" id="switchButton" type="button">
+Already registered? Login
+</button>
 
-<!-- CUSTOMER REGISTRATION -->
-<section id="customer-registration" style="max-width:420px;margin:30px auto;padding:25px;background:white;border-radius:12px;box-shadow:0 2px 12px #ddd;font-family:Arial">
-  <h2>Create Customer Account</h2>
-  <form id="register-form">
-    <label>Full Name</label>
-    <input id="full-name" type="text" placeholder="Enter your full name" required style="width:100%;padding:12px;margin:8px 0">
+<p id="message" role="status"></p>
+</main>
 
-    <label>Email Address</label>
-    <input id="email" type="email" placeholder="Enter your email" required style="width:100%;padding:12px;margin:8px 0">
-
-    <label>Password</label>
-    <input id="password" type="password" placeholder="At least 6 characters" minlength="6" required style="width:100%;padding:12px;margin:8px 0">
-
-    <button type="submit" style="width:100%;padding:13px;background:#087f5b;color:white;border:0;border-radius:6px;font-size:16px">
-      Create Account
-    </button>
-  </form>
-  <p id="register-message" role="status"></p>
-</section>
-
-<!-- SUPABASE CONNECTION -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script
-const SUPABASE_KEY =sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp
-const APP_URL = "https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/";
+<script>
+const SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_KEY = "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
 
-document.getElementById("register-form").addEventListener("submit", async function(event) {
+const SITE_URL =
+"https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/";
+
+let loginMode = false;
+
+const form = document.getElementById("authForm");
+const message = document.getElementById("message");
+
+document.getElementById("switchButton").onclick = () => {
+  loginMode = !loginMode;
+
+  document.getElementById("heading").textContent =
+    loginMode ? "Customer Login" : "Customer Registration";
+
+  document.getElementById("submitButton").textContent =
+    loginMode ? "Login" : "Create Account";
+
+  document.getElementById("switchButton").textContent =
+    loginMode ? "New customer? Register" :
+    "Already registered? Login";
+
+  message.textContent = "";
+};
+
+form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const message = document.getElementById("register-message");
-  const button = this.querySelector("button");
-
-  const fullName = document.getElementById("full-name").value.trim();
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
-  button.disabled = true;
-  message.textContent = "Creating your account...";
+  const submitButton = document.getElementById("submitButton");
+
+  submitButton.disabled = true;
+  message.textContent = "Please wait...";
 
   try {
-    const { data, error } = await supabaseClient.auth.signUp({
-      email: email,001ivyrose@gmail.com
-      password: password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: APP_URL
-      }https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/";
+    if (loginMode) {
+      const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
 
-    });
+      if (error) throw error;
 
-    if (error) throw error;
+      if (!data.session) {
+        throw new Error("Login session was not created. Please try again.");
+      }
 
-    message.textContent = data.user?.identities?.length === 0
-      ? "This email may already be registered. Please try logging in."
-      : "Registration successful! Check your email for a verification link.";
+      window.location.href = SITE_URL + "stalls.html";
 
-    this.reset();
+    } else {
+      const { data, error } =
+        await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: SITE_URL
+          }
+        });
+
+      if (error) throw error;
+
+      if (data.session) {
+        window.location.href = SITE_URL + "stalls.html";
+      } else {
+        message.textContent =
+          "Account created! Please check your email, verify your address, then return here and log in.";
+      }
+    }
 
   } catch (error) {
-    message.textContent = "Registration failed: " + error.message;
+    message.textContent = "Error: " + error.message;
   } finally {
-    button.disabled = false;
+    submitButton.disabled = false;
   }
 });
-</script>
 
-<footer>
-<p>© 2026 VENDOR. All Rights Reserved.</p>
-</footer>
+async function checkExistingSession() {
+  const { data, error } =
+    await supabaseClient.auth.getSession();
+
+  if (!error && data.session) {
+    window.location.href = SITE_URL + "stalls.html";
+  }
+}
+
+checkExistingSession();
+</script>
 
 </body>
 </html>
-<!-- Vendor website homepage -->
