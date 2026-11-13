@@ -117,6 +117,7 @@ footer {
 <script>
 const SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL";
 const SUPABASE_KEY = "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY";
+const APP_URL = "https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
@@ -142,7 +143,7 @@ document.getElementById("register-form").addEventListener("submit", async functi
       password: password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: window.location.href
+        emailRedirectTo: APP_URL
       }
     });
 
