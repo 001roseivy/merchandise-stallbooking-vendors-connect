@@ -118,9 +118,9 @@ document.getElementById("switchButton").onclick = () => {
   message.textContent = "";
 };
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
+form.addEventListener("submit", async (event) => { 
+  alert("Registration button is working!");
+event.preventDefault()
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
