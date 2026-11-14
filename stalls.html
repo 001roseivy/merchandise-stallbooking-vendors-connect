@@ -290,7 +290,7 @@ async function submitBooking(event){
   const customerName=$("customerName").value.trim();
   const customerEmail=$("customerEmail").value.trim();
   
-  if(!customerName||!customerEmail||!phone){notify("Please complete your contact details.","error");return;}
+  if(!customerName||!customerEmail){notify("Please complete your contact details.","error");return;}
   const payload={
     stall_id:selectedStall.id,
     customer_id:currentUser.id,
@@ -337,7 +337,7 @@ async function loadBookings(){
 async function register(event){
   event.preventDefault();
   const fullName=$("regName").value.trim();
-  const phone=$("regPhone").value.trim();
+  
   const email=$("regEmail").value.trim();
   const password=$("regPassword").value;
   if(password.length<8){notify("Use a password with at least 8 characters.","error");return;}
