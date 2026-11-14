@@ -249,7 +249,7 @@ async function loadStalls(){
     .from("public_stalls")
     .select("*")
     .eq("verification_status", "verified")
-    .order("created_at", { ascending: false });
+    
 
   if(error){
     console.error("Error loading stalls:", error);
@@ -296,26 +296,65 @@ function renderStalls(){
   `).join("");
 }
 
-function chooseStall(id){
-  selectedStall=stalls.find(s=>s.id===id);
-  if(!selectedStall) return;
-  document.getElementById("selectedStall").innerHTML=
-    `<h3>${safe(selectedStall.title)}</h3>
-     <p>${safe(selectedStall.city)}, ${safe(selectedStall.country)}</p>
-     <p class="price">£${Number(selectedStall.price_per_day_gbp).toFixed(2)} per day</p>`;
-  showSection("bookingForm");
-  calculateTotal();
+
+function renderStalls(){
+  const term = document.getElementById("search").value.toLowerCase();
+
+  const results = stalls.filter(s =>
+    [s.title, s.country, s.city, s.stall_type, s.venue]
+      .join(" ").toLowerCase().includes(term)
+  );
+
+  const area = document.getElementById("stallList");
+
+  if(!results.length){
+    area.innerHTML = "<p>No available stalls found. Please check again later.</p>";
+    return;
+  }
+
+  area.innerHTML = results.map(s => {
+    const price = s.total_fee_gbp != null
+      ? Number(s.total_fee_gbp)
+      : Number(s.price_per_day_gbp || 0);
+
+    const priceLabel = s.price_basis === "per_day"
+      ? "per day"
+      : s.price_basis === "per_event"
+        ? "per event"
+        : s.price_basis === "one_time"
+          ? "one-time fee"
+          : "listed fee";
+
+    const dimensions = s.width_m && s.depth_m
+      ? `${s.width_m}m × ${s.depth_m}m`
+      : "Not specified";
+
+    return `
+      <article class="stall">
+        ${s.image_url ? `<img src="${safe(s.image_url)}" alt="Stall image" onerror="this.style.display='none'">` : ""}
+
+        <h3>${safe(s.title)}</h3>
+        <p><strong>Location:</strong> ${safe(s.city)}, ${safe(s.country)}</p>
+        <p><strong>Venue:</strong> ${safe(s.venue || "Not specified")}</p>
+        <p>${safe(s.description || "")}</p>
+        <p><strong>Type:</strong> ${safe(s.stall_type || "Standard")}</p>
+        <p><strong>Size:</strong> ${dimensions}</p>
+        <p><strong>Start date:</strong> ${safe(s.event_start_date || "Not specified")}</p>
+        <p><strong>End date:</strong> ${safe(s.event_end_date || "Not specified")}</p>
+        <p><strong>Organiser:</strong> ${safe(s.organiser_name || "Not specified")}</p>
+
+        <p class="price">
+          £${price.toFixed(2)} ${priceLabel}
+        </p>
+
+        <button class="action" onclick="chooseStall('${s.id}')">
+          Book This Stall
+        </button>
+      </article>
+    `;
+  }).join("");
 }
 
-function calculateTotal(){
-  if(!selectedStall) return;
-  const start=document.getElementById("startDate").value;
-  const end=document.getElementById("endDate").value;
-  const box=document.getElementById("totalBox");
-
-  if(!start || !end){
-    box.textContent="Select your booking dates to calculate the total.";
-    return;
   }
 
   const a=new Date(start+"T00:00:00");
