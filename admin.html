@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VENDOR | Admin Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ background:#f3f5f9;
+ color:#182238;
+}
+header{
+ background:#14213d;
+ color:white;
+ padding:22px;
+}
+header h2{margin:0}
+main{
+ max-width:1100px;
+ margin:25px auto;
+ padding:15px;
+}
+.card{
+ background:white;
+ padding:20px;
+ border-radius:12px;
+ margin-bottom:18px;
+ box-shadow:0 2px 10px #0001;
+}
+input{
+ width:100%;
+ padding:13px;
+ border:1px solid #ccc;
+ border-radius:7px;
+ margin:8px 0;
+}
+button{
+ padding:11px 16px;
+ border:0;
+ border-radius:7px;
+ cursor:pointer;
+ font-weight:bold;
+ margin:4px;
+}
+.primary{background:#14213d;color:white}
+.approve{background:#16834a;color:white}
+.reject{background:#c62828;color:white}
+.logout{background:#555;color:white}
+.grid{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+ gap:12px;
+}
+.stat{
+ background:#eef2f8;
+ padding:17px;
+ border-radius:9px;
+}
+.stat strong{
+ display:block;
+ font-size:27px;
+ margin-bottom:5px;
+}
+.booking{
+ background:white;
+ border:1px solid #e2e7ef;
+ border-radius:9px;
+ padding:15px;
+ margin:12px 0;
+ overflow-wrap:anywhere;
+}
+.status{
+ font-weight:bold;
+ text-transform:uppercase;
+}
+#dashboard{display:none}
+.message{color:#c62828}
+.muted{color:#667085}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>VENDOR</h2>
+<p>Administrator Booking Dashboard</p>
+</header>
+
+<main>
+
+<section id="login" class="card">
+<h3>Administrator Login</h3>
+<p class="muted">Sign in using your authorised administrator account.</p>
+
+<input id="email" type="email" placeholder="Administrator email">
+<input id="password" type="password" placeholder="Password">
+
+<button class="primary" onclick="login()">Sign In</button>
+<p id="message" class="message"></p>
+</section>
+
+<section id="dashboard">
+
+<div class="card">
+<h3>Welcome, Administrator</h3>
+<button class="primary" onclick="loadBookings()">Refresh Bookings</button>
+<button class="logout" onclick="logout()">Sign Out</button>
+</div>
+
+<div class="grid">
+<div class="stat">
+<strong id="total">0</strong>
+Total bookings
+</div>
+
+<div class="stat">
+<strong id="pending">0</strong>
+Pending
+</div>
+
+<div class="stat">
+<strong id="approved">0</strong>
+Approved
+</div>
+
+<div class="stat">
+<strong id="rejected">0</strong>
+Rejected
+</div>
+</div>
+
+<div class="card">
+<h3>Booking Requests</h3>
+<div id="bookings">Loading...</div>
+</div>
+
+</section>
+</main>
+
+<script>
+
+// VENDOR SUPABASE CONNECTION
+const SUPABASE_URL = "https://ddyornrjnthwkjfvauff.supabase.co";
+
+const SUPABASE_ANON_KEY = "sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp";
+
+const db = window.supabase.createClient(
+ SUPABASE_URL,
+ SUPABASE_ANON_KEY
+);
+
+// ADMINISTRATOR LOGIN
+async function login(){
+
+ const email = document.getElementById("email").value.trim();
+ const password = document.getElementById("password").value;
+ const message = document.getElementById("message");
+
+ if(!email || !password){
+  message.textContent="Enter your email and password.";
+  return;
+ }
+
+ message.textContent="Signing in...";
+
+ const {data,error}=await db.auth.signInWithPassword({
+  email,password
+ });
+
+ if(error){
+  message.textContent=error.message;
+  return;
+ }
+
+ const {data:profile,error:profileError}=await db
+  .from("profiles")
+  .select("role,is_approved")
+  .eq("id",data.user.id)
+  .single();
+
+ if(profileError ||
+    profile?.role!=="admin" ||
+    profile?.is_approved!==true){
+
+  await db.auth.signOut();
+  message.textContent="Administrator access denied.";
+  return;
+ }
+
+ document.getElementById("login").style.display="none";
+ document.getElementById("dashboard").style.display="block";
+
+ await loadBookings();
+}
+
+// LOAD BOOKINGS
+async function loadBookings(){
+
+ const area=document.getElementById("bookings");
+ area.textContent="Loading bookings...";
+
+ const {data,error}=await db
+  .from("bookings")
+  .select("*")
+  .order("id",{ascending:false});
+
+ if(error){
+  area.textContent="Error loading bookings: "+error.message;
+  return;
+ }
+
+ const bookings=data||[];
+
+ document.getElementById("total").textContent=bookings.length;
+ document.getElementById("pending").textContent=
+  bookings.filter(b=>b.status==="pending").length;
+ document.getElementById("approved").textContent=
+  bookings.filter(b=>b.status==="approved").length;
+ document.getElementById("rejected").textContent=
+  bookings.filter(b=>b.status==="rejected").length;
+
+ if(bookings.length===0){
+  area.textContent="No bookings available.";
+  return;
+ }
+
+ area.innerHTML=bookings.map(b=>{
+
+  const details=Object.entries(b)
+   .filter(([key])=>key!=="id")
+   .map(([key,value])=>
+    `<p><b>${escapeHTML(key)}:</b> ${escapeHTML(value)}</p>`
+   ).join("");
+
+  let actions="";
+
+  if(b.status==="pending"){
+   actions=`
+    <button class="approve"
+    onclick="changeStatus('${escapeHTML(b.id)}','approved')">
+    Approve
+    </button>
+
+    <button class="reject"
+    onclick="changeStatus('${escapeHTML(b.id)}','rejected')">
+    Reject
+    </button>
+   `;
+  }
+
+  return `
+   <div class="booking">
+    <h3>Booking #${escapeHTML(b.id)}</h3>
+    <p class="status">Status: ${escapeHTML(b.status)}</p>
+    ${details}
+    ${actions}
+   </div>
+  `;
+
+ }).join("");
+}
+
+// SAFE HTML DISPLAY
+function escapeHTML(value){
+ return String(value??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+ })[c]);
+}
+
+// UPDATE BOOKING STATUS
+async function changeStatus(id,status){
+
+ if(!confirm("Are you sure you want to "+status+" this booking?")){
+  return;
+ }
+
+ const {data,error}=await db
+  .from("bookings")
+  .update({status:status})
+  .eq("id",id)
+  .eq("status","pending")
+  .select("id");
+
+ if(error){
+  alert("Booking update failed: "+error.message);
+  return;
+ }
+
+ if(!data||data.length===0){
+  alert("No booking was updated. Check database permissions or booking status.");
+  return;
+ }
+
+ alert("Booking updated successfully.");
+ await loadBookings();
+}
+
+// LOGOUT
+async function logout(){
+ await db.auth.signOut();
+ location.reload();
+}
+
+// SESSION RESTORATION
+async function checkSession(){
+
+ const {data,error}=await db.auth.getSession();
+
+ if(error||!data.session)return;
+
+ const {data:profile,error:profileError}=await db
+  .from("profiles")
+  .select("role,is_approved")
+  .eq("id",data.session.user.id)
+  .single();
+
+ if(profileError ||
+    profile?.role!=="admin" ||
+    profile?.is_approved!==true){
+
+  await db.auth.signOut();
+  return;
+ }
+
+ document.getElementById("login").style.display="none";
+ document.getElementById("dashboard").style.display="block";
+
+ await loadBookings();
+}
+
+checkSession();
+
+</script>
+
+</body>
+</html>
