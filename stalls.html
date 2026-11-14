@@ -245,9 +245,21 @@ function updateAccount(){
 }
 
 async function loadStalls(){
-  const {data,error}=await db.from("stalls")
-    .select("*").eq("available",true).order("created_at",{ascending:false});
+  const { data, error } = await db
+    .from("public_stalls")
+    .select("*")
+    .eq("verification_status", "verified")
+    .order("created_at", { ascending: false });
 
+  if(error){
+    console.error("Error loading stalls:", error);
+    alert("Unable to load stalls. Please try again.");
+    return;
+  }
+
+  stalls = data || [];
+  renderStalls();
+}
   if(error){
     document.getElementById("stallList").textContent="Could not load stalls: "+error.message;
     return;
