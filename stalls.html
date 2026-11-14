@@ -1,457 +1,445 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VENDOR | European Stall Booking</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f5f6fa;color:#222}
-header{background:#102b46;color:white;padding:22px 15px;text-align:center}
-header h1{margin:0;font-size:30px;letter-spacing:2px}
-header p{margin:8px 0 0}
-nav{background:#183d60;padding:12px;display:flex;justify-content:center;gap:15px;flex-wrap:wrap}
-nav button{background:transparent;color:white;border:0;font-weight:bold;cursor:pointer}
-main{max-width:1050px;margin:22px auto;padding:0 14px}
-.panel{background:white;padding:20px;margin-bottom:18px;border-radius:12px;box-shadow:0 2px 9px #00000010}
-h2{color:#183d60;margin-top:0}
-input,select,textarea{width:100%;padding:12px;margin:7px 0 13px;border:1px solid #ccd2da;border-radius:7px;font-size:15px}
-button.action{background:#176b45;color:white;border:0;padding:12px 17px;border-radius:7px;font-weight:bold;cursor:pointer}
-button.secondary{background:#183d60;color:white;border:0;padding:10px 14px;border-radius:7px;cursor:pointer}
-button:disabled{opacity:.5}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:15px}
-.stall{border:1px solid #e1e4e8;border-radius:10px;padding:14px;background:white}
-.stall img{width:100%;height:155px;object-fit:cover;border-radius:8px;background:#eee}
-.price{font-size:20px;color:#176b45;font-weight:bold}
-.small{color:#666;font-size:13px}
-.hidden{display:none}
-.notice{padding:11px;background:#edf5ff;border-radius:7px;margin:10px 0}
-footer{text-align:center;padding:25px;color:#666}
+:root{--navy:#12365d;--blue:#1d5b96;--bg:#f4f6f9;--ink:#1c2736;--muted:#657286;--line:#dce3ec;--green:#176b43;--red:#a52a2a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px Arial,sans-serif}
+header{background:var(--navy);color:#fff;padding:18px max(16px,calc((100% - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:24px;letter-spacing:1px}header p{margin:5px 0 0;color:#d9e5f2;font-size:13px}
+nav{background:#fff;border-bottom:1px solid var(--line);padding:10px max(12px,calc((100% - 1100px)/2));display:flex;gap:8px;flex-wrap:wrap}
+button{border:0;border-radius:8px;padding:11px 14px;background:var(--blue);color:white;font-weight:bold;cursor:pointer}
+button:hover{filter:brightness(.92)}button.secondary{background:#e8edf4;color:var(--ink)}button:disabled{opacity:.55;cursor:not-allowed}
+main{max-width:1100px;margin:24px auto;padding:0 15px}.panel{display:none;background:white;border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}.panel.active{display:block}
+h2{margin:0 0 8px;font-size:22px}h3{margin:0 0 8px}.muted{color:var(--muted);line-height:1.5;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:15px;margin-top:16px}
+.stall{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff}.stall img{display:block;width:100%;height:165px;object-fit:cover;background:#edf1f6}.stall-content{padding:15px}
+.price{font-weight:bold;color:var(--blue);font-size:20px;margin:12px 0}.tag{display:inline-block;padding:4px 8px;border-radius:20px;background:#eaf2fb;color:#194d7d;font-size:12px;margin:2px 4px 2px 0}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}.field{display:flex;flex-direction:column;gap:6px}.full{grid-column:1/-1}
+label{font-weight:bold;font-size:13px}input,select,textarea{font:inherit;width:100%;padding:11px;border:1px solid #cbd4df;border-radius:7px;background:white}textarea{min-height:85px}
+.notice{padding:12px;border-radius:8px;background:#edf3fa;margin:12px 0;line-height:1.45}.notice.success{background:#eaf6ee;color:#145b36}.notice.error{background:#fff0ef;color:#922c25}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.hidden{display:none!important}
+table{border-collapse:collapse;width:100%;margin-top:14px;font-size:14px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+.small{font-size:12px;color:var(--muted)}footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
+@media(max-width:600px){.panel{padding:15px}nav button{flex:1}table{display:block;overflow-x:auto}}
 </style>
 </head>
 <body>
-
 <header>
-<h1>VENDOR</h1>
-<p>Discover and book vendor stalls across Europe</p>
+  <div><h1>VENDOR</h1><p>European Stall Booking</p></div>
+  <div id="sessionLabel" class="small" style="color:#fff">Not signed in</div>
 </header>
-
 <nav>
-<button onclick="showSection('browse')">Browse Stalls</button>
-<button onclick="showSection('account')">My Account</button>
-<button onclick="showSection('bookings')">My Bookings</button>
-<button onclick="showSection('organiser')">List a Stall</button>
-<button onclick="logout()">Log Out</button>
+  <button onclick="showSection('browse')">Browse stalls</button>
+  <button class="secondary" onclick="showSection('account')">Account</button>
+  <button class="secondary" onclick="showSection('mybookings')">My bookings</button>
+  <button class="secondary" onclick="showSection('organiser')">List a stall</button>
 </nav>
-
 <main>
+  <div id="notice" class="notice hidden" role="status"></div>
 
-<section id="browse" class="panel">
-<h2>Find a Vendor Stall</h2>
-<p>Explore available stalls and submit a booking request.</p>
-<input id="search" placeholder="Search by city, country or stall name" oninput="renderStalls()">
-<div id="stallList" class="grid">Loading stalls...</div>
-</section>
+  <section id="browse" class="panel active">
+    <div class="row"><div><h2>Available stalls</h2><p class="muted">Only verified, authorised listings with confirmed availability appear here.</p></div><button class="secondary" onclick="loadStalls()">Refresh</button></div>
+    <div id="stallArea" class="grid"><p class="muted">Loading opportunities…</p></div>
+  </section>
 
-<section id="account" class="panel hidden">
-<h2>Customer Account</h2>
-<div id="signedOut">
-<h3>Create an account</h3>
-<input id="regName" placeholder="Full name">
-<input id="regPhone" placeholder="Phone number">
-<input id="regEmail" type="email" placeholder="Email address">
-<input id="regPassword" type="password" placeholder="Password (at least 6 characters)">
-<button class="action" onclick="register()">Register</button>
-<hr>
-<h3>Already registered? Log in</h3>
-<input id="loginEmail" type="email" placeholder="Email address">
-<input id="loginPassword" type="password" placeholder="Password">
-<button class="action" onclick="login()">Log In</button>
-<button class="secondary" onclick="resetPassword()">Reset password</button>
-</div>
-<div id="signedIn" class="hidden">
-<p id="userInfo"></p>
-<button class="action" onclick="logout()">Log Out</button>
-</div>
-</section>
+  <section id="account" class="panel">
+    <h2>Your account</h2><p class="muted">Create an account or sign in to manage your booking requests.</p>
+    <div id="signedInBox" class="notice hidden"></div>
+    <div id="authForms">
+      <h3>Register</h3>
+      <form id="registerForm">
+        <div class="field"><label for="regName">Full name</label><input id="regName" required autocomplete="name"></div>
+        <div class="field"><label for="regPhone">Phone number</label><input id="regPhone" autocomplete="tel"></div>
+        <div class="field"><label for="regEmail">Email</label><input id="regEmail" type="email" required autocomplete="email"></div>
+        <div class="field"><label for="regPassword">Password (at least 8 characters)</label><input id="regPassword" type="password" minlength="8" required autocomplete="new-password"></div>
+        <div class="field full"><button type="submit">Create account</button></div>
+      </form>
+      <hr style="border:0;border-top:1px solid var(--line);margin:22px 0">
+      <h3>Sign in</h3>
+      <form id="loginForm">
+        <div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" required autocomplete="email"></div>
+        <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" required autocomplete="current-password"></div>
+        <div class="field full"><div class="actions"><button type="submit">Sign in</button><button type="button" class="secondary" onclick="resetPassword()">Forgot password?</button></div></div>
+      </form>
+    </div>
+    <div class="actions"><button id="logoutBtn" class="secondary hidden" onclick="logout()">Sign out</button></div>
+  </section>
 
-<section id="bookings" class="panel hidden">
-<h2>My Booking Requests</h2>
-<div id="bookingList">Log in to view your bookings.</div>
-</section>
+  <section id="mybookings" class="panel">
+    <h2>My booking requests</h2><p class="muted">Your booking requests and payment status appear here.</p>
+    <div id="bookingArea"><p class="muted">Sign in to view your bookings.</p></div>
+  </section>
 
-<section id="organiser" class="panel hidden">
-<h2>List Your Stall</h2>
-<p class="small">Only administrators and approved organisers can publish stalls.</p>
-<input id="stallTitle" placeholder="Stall name">
-<textarea id="stallDescription" placeholder="Describe the stall, facilities and terms"></textarea>
-<input id="stallCountry" placeholder="Country">
-<input id="stallCity" placeholder="City">
-<input id="stallVenue" placeholder="Venue or market name">
-<select id="stallType">
-<option value="standard">Standard</option>
-<option value="basic">Basic</option>
-<option value="premium">Premium</option>
-<option value="food">Food stall</option>
-<option value="exhibition">Large exhibition stall</option>
-</select>
-<input id="stallDimensions" placeholder="Dimensions, e.g. 3m x 3m">
-<label>Price per day (GBP £)</label>
-<input id="stallPrice" type="number" min="1" step="0.01" placeholder="Daily price in pounds">
-<input id="stallImage" type="url" placeholder="Image URL (optional)">
-<button class="action" onclick="addStall()">Submit Stall</button>
-<p class="small">Your listing will be subject to the permissions and approval settings on the platform.</p>
-</section>
+  <section id="bookingFormPanel" class="panel">
+    <div class="row"><div><h2>Request this stall</h2><p id="selectedStallText" class="muted"></p></div><button class="secondary" onclick="showSection('browse')">Back to listings</button></div>
+    <form id="bookingForm">
+      <div class="field"><label for="customerName">Full name</label><input id="customerName" required></div>
+      <div class="field"><label for="customerEmail">Email</label><input id="customerEmail" type="email" required></div>
+      <div class="field"><label for="customerPhone">Phone</label><input id="customerPhone" required></div>
+      <div class="field"><label for="bookingStart">Start date</label><input id="bookingStart" type="date" required onchange="calculateTotal()"></div>
+      <div class="field"><label for="bookingEnd">End date</label><input id="bookingEnd" type="date" required onchange="calculateTotal()"></div>
+      <div class="field full"><div id="bookingTotal" class="notice">Choose your dates to calculate the total.</div></div>
+      <div class="field full"><p class="small">Submitting this form sends a booking request. It does not charge you. Payment checkout will be enabled after your merchant payment gateway is connected.</p><button type="submit">Submit booking request</button></div>
+    </form>
+  </section>
 
-<section id="bookingForm" class="panel hidden">
-<h2>Book a Stall</h2>
-<div id="selectedStall"></div>
-<label>Start date</label>
-<input id="startDate" type="date" onchange="calculateTotal()">
-<label>End date</label>
-<input id="endDate" type="date" onchange="calculateTotal()">
-<div class="notice" id="totalBox">Select your booking dates to calculate the total.</div>
-<input id="bookName" placeholder="Your full name">
-<input id="bookEmail" type="email" placeholder="Your email">
-<input id="bookPhone" placeholder="Your phone number">
-<textarea id="bookNotes" placeholder="Additional event or booking details (optional)"></textarea>
-<button class="action" onclick="submitBooking()">Submit Booking Request</button>
-<button class="secondary" onclick="showSection('browse')">Cancel</button>
-</section>
-
+  <section id="organiser" class="panel">
+    <h2>List a stall</h2><p class="muted">Approved organisers can submit opportunities. New submissions are hidden from customers until reviewed and authorised by the administrator.</p>
+    <form id="stallForm">
+      <div class="field"><label for="stallTitle">Listing title</label><input id="stallTitle" required></div>
+      <div class="field"><label for="stallType">Stall type</label><input id="stallType" placeholder="Indoor, outdoor, food…" required></div>
+      <div class="field"><label for="stallCountry">Country</label><input id="stallCountry" required></div>
+      <div class="field"><label for="stallCity">City</label><input id="stallCity" required></div>
+      <div class="field"><label for="stallVenue">Venue</label><input id="stallVenue" required></div>
+      <div class="field"><label for="stallPrice">Price per day (GBP)</label><input id="stallPrice" type="number" min="0" step="0.01" required></div>
+      <div class="field"><label for="stallWidth">Width (metres)</label><input id="stallWidth" type="number" min="0" step="0.1"></div>
+      <div class="field"><label for="stallDepth">Depth (metres)</label><input id="stallDepth" type="number" min="0" step="0.1"></div>
+      <div class="field"><label for="stallImage">Image URL (optional)</label><input id="stallImage" type="url"></div>
+      <div class="field full"><label for="stallDescription">Description</label><textarea id="stallDescription"></textarea></div>
+      <div class="field full"><button type="submit">Submit for administrator review</button></div>
+    </form>
+  </section>
 </main>
-
-<footer>VENDOR | European Stall Booking Platform</footer>
+<footer>VENDOR European Stall Booking · Payments are not collected on this page until a secure payment gateway is connected.</footer>
 
 <script>
+"use strict";
 
-  currentProfile=null;
-  updateAccount();
-  showSection("browse");
-  message("You have logged out.");
+/* Browser-safe Supabase publishable key. Never put a service_role/secret key here. */
+const SUPABASE_URL = "https://ddyornrjnthwkjfvauff.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp";
+
+let db = null;
+let currentUser = null;
+let currentProfile = null;
+let stalls = [];
+let selectedStall = null;
+
+function $(id){ return document.getElementById(id); }
+function safe(value){
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[ch]));
 }
-
-async function resetPassword(){
-  const email=document.getElementById("loginEmail").value.trim();
-  if(!email) return message("Enter your email address first.");
-
-  const {error}=await db.auth.resetPasswordForEmail(email,{
-    redirectTo:window.location.href.split("?")[0]
-  });
-  if(error) return message(error.message);
-  message("If the email is registered, a password reset link will be sent.");
+function notify(message, type="info"){
+  const box=$("notice");
+  box.textContent=message;
+  box.className="notice"+(type==="error"?" error":type==="success"?" success":"");
+  box.classList.remove("hidden");
+  window.scrollTo({top:0,behavior:"smooth"});
 }
-
+function clearNotice(){ $("notice").classList.add("hidden"); }
+function showSection(id){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  const target=$(id);
+  if(target) target.classList.add("active");
+  clearNotice();
+  if(id==="mybookings") loadBookings();
+}
+function gbp(amount){
+  return new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(Number(amount||0));
+}
+function dateText(value){
+  if(!value) return "Dates to be confirmed";
+  const d=new Date(value+"T00:00:00");
+  return Number.isNaN(d.getTime())?safe(value):d.toLocaleDateString("en-GB");
+}
+function priceText(stall){
+  if(stall.price_basis==="per_event" || stall.price_basis==="one_time"){
+    return stall.total_fee_gbp!=null ? gbp(stall.total_fee_gbp)+" per event" : "Price to be confirmed";
+  }
+  if(stall.price_per_day_gbp!=null) return gbp(stall.price_per_day_gbp)+" per day";
+  return stall.total_fee_gbp!=null ? gbp(stall.total_fee_gbp) : "Price to be confirmed";
+}
+function isBookable(stall){
+  return stall && stall.available===true &&
+    stall.verification_status==="verified" &&
+    stall.is_authorised_reseller===true;
+}
 async function loadProfile(){
-  if(!currentUser) return;
+  currentProfile=null;
+  if(!currentUser) return null;
   const {data,error}=await db.from("profiles")
-    .select("full_name,phone,role,is_approved")
+    .select("id,full_name,phone,role,is_approved")
     .eq("id",currentUser.id).maybeSingle();
-
-  if(error){console.error(error);return;}
+  if(error){
+    console.warn("Profile lookup:",error.message);
+    return null;
+  }
   currentProfile=data;
+  return data;
 }
-
 function updateAccount(){
-  const out=document.getElementById("signedOut");
-  const inside=document.getElementById("signedIn");
-
-  if(currentUser){
-    out.classList.add("hidden");
-    inside.classList.remove("hidden");
-    document.getElementById("userInfo").textContent=
-      "Logged in as "+currentUser.email+
-      (currentProfile?.role ? " | Role: "+currentProfile.role : "");
-    document.getElementById("bookName").value=currentProfile?.full_name || "";
-    document.getElementById("bookEmail").value=currentUser.email || "";
-    document.getElementById("bookPhone").value=currentProfile?.phone || "";
+  const logged=!!currentUser;
+  $("sessionLabel").textContent=logged?(currentUser.email||"Signed in"):"Not signed in";
+  $("authForms").classList.toggle("hidden",logged);
+  $("signedInBox").classList.toggle("hidden",!logged);
+  $("logoutBtn").classList.toggle("hidden",!logged);
+  if(logged){
+    const displayName=currentProfile?.full_name || currentUser.user_metadata?.full_name || currentUser.email;
+    $("signedInBox").textContent="Signed in as "+displayName+". Role: "+(currentProfile?.role||"customer")+".";
+    $("customerName").value=currentProfile?.full_name || currentUser.user_metadata?.full_name || "";
+    $("customerEmail").value=currentUser.email||"";
+    $("customerPhone").value=currentProfile?.phone || currentUser.user_metadata?.phone || "";
   }else{
-    out.classList.remove("hidden");
-    inside.classList.add("hidden");
+    $("signedInBox").textContent="";
   }
 }
-
 async function loadStalls(){
-  const { data, error } = await db
-    .from("public_stalls")
+  const area=$("stallArea");
+  area.innerHTML='<p class="muted">Loading opportunities…</p>';
+  const {data,error}=await db.from("public_stall_opportunities")
     .select("*")
-    .eq("verification_status", "verified")
-    
-
+    .eq("verification_status","verified")
+    .eq("is_authorised_reseller",true)
+    .eq("available",true)
+    .order("event_start_date",{ascending:true});
   if(error){
-    console.error("Error loading stalls:", error);
-    alert("Unable to load stalls. Please try again.");
+    console.error(error);
+    area.innerHTML='<p class="muted">Listings could not be loaded. Check the public_stall_opportunities view and its SELECT grant in Supabase.</p>';
+    notify("Could not load stalls: "+error.message,"error");
     return;
   }
-
-  stalls = data || [];
+  stalls=data||[];
   renderStalls();
 }
-  if(error){
-    document.getElementById("stallList").textContent="Could not load stalls: "+error.message;
-    return;
-  }
-  stalls=data || [];
-  renderStalls();
-}
-
 function renderStalls(){
-  const term=document.getElementById("search").value.toLowerCase();
-  const results=stalls.filter(s=>
-    [s.title,s.country,s.city,s.stall_type,s.venue]
-    .join(" ").toLowerCase().includes(term)
-  );
-
-  const area=document.getElementById("stallList");
-  if(!results.length){
-    area.innerHTML="<p>No available stalls found. Please check again later.</p>";
+  const area=$("stallArea");
+  if(!stalls.length){
+    area.innerHTML='<p class="muted">There are currently no confirmed available stalls. Please check again later.</p>';
     return;
   }
-
-  area.innerHTML=results.map(s=>`
-    <article class="stall">
-      ${s.image_url ? `<img src="${safe(s.image_url)}" alt="Stall image" onerror="this.style.display='none'">` : ""}
-      <h3>${safe(s.title)}</h3>
-      <p>${safe(s.city)}, ${safe(s.country)}</p>
-      <p>${safe(s.venue || "")}</p>
-      <p>${safe(s.description || "")}</p>
-      <p>Type: ${safe(s.stall_type || "Standard")}</p>
-      <p>Size: ${safe(s.dimensions || "Not specified")}</p>
-      <p class="price">£${Number(s.price_per_day_gbp).toFixed(2)} / day</p>
-      <button class="action" onclick="chooseStall('${s.id}')">Book This Stall</button>
-    </article>
-  `).join("");
-}
-
-
-function renderStalls(){
-  const term = document.getElementById("search").value.toLowerCase();
-
-  const results = stalls.filter(s =>
-    [s.title, s.country, s.city, s.stall_type, s.venue]
-      .join(" ").toLowerCase().includes(term)
-  );
-
-  const area = document.getElementById("stallList");
-
-  if(!results.length){
-    area.innerHTML = "<p>No available stalls found. Please check again later.</p>";
-    return;
-  }
-
-  area.innerHTML = results.map(s => {
-    const price = s.total_fee_gbp != null
-      ? Number(s.total_fee_gbp)
-      : Number(s.price_per_day_gbp || 0);
-
-    const priceLabel = s.price_basis === "per_day"
-      ? "per day"
-      : s.price_basis === "per_event"
-        ? "per event"
-        : s.price_basis === "one_time"
-          ? "one-time fee"
-          : "listed fee";
-
-    const dimensions = s.width_m && s.depth_m
-      ? `${s.width_m}m × ${s.depth_m}m`
-      : "Not specified";
-
-    return `
-      <article class="stall">
-        ${s.image_url ? `<img src="${safe(s.image_url)}" alt="Stall image" onerror="this.style.display='none'">` : ""}
-
+  area.innerHTML=stalls.map(s=>{
+    const dimensions=(s.width_m&&s.depth_m)?`${safe(s.width_m)} m × ${safe(s.depth_m)} m`:safe(s.dimensions||"Dimensions not stated");
+    const img=s.image_url && /^https?:\/\//i.test(s.image_url)?s.image_url:"";
+    return `<article class="stall">
+      ${img?`<img src="${safe(img)}" alt="${safe(s.title)}" loading="lazy" onerror="this.style.display='none'">`:""}
+      <div class="stall-content">
         <h3>${safe(s.title)}</h3>
-        <p><strong>Location:</strong> ${safe(s.city)}, ${safe(s.country)}</p>
-        <p><strong>Venue:</strong> ${safe(s.venue || "Not specified")}</p>
-        <p>${safe(s.description || "")}</p>
-        <p><strong>Type:</strong> ${safe(s.stall_type || "Standard")}</p>
-        <p><strong>Size:</strong> ${dimensions}</p>
-        <p><strong>Start date:</strong> ${safe(s.event_start_date || "Not specified")}</p>
-        <p><strong>End date:</strong> ${safe(s.event_end_date || "Not specified")}</p>
-        <p><strong>Organiser:</strong> ${safe(s.organiser_name || "Not specified")}</p>
-
-        <p class="price">
-          £${price.toFixed(2)} ${priceLabel}
-        </p>
-
-        <button class="action" onclick="chooseStall('${s.id}')">
-          Book This Stall
-        </button>
-      </article>
-    `;
+        <p class="muted">${safe(s.venue||"Venue to be confirmed")} · ${safe(s.city||"")} · ${safe(s.country||"")}</p>
+        <div class="price">${safe(priceText(s))}</div>
+        <span class="tag">${safe(s.stall_type||"Stall")}</span><span class="tag">${dimensions}</span>
+        <p class="muted">${safe(s.description||"Contact us for listing details.")}</p>
+        <p class="small">Event: ${dateText(s.event_start_date)}${s.event_end_date&&s.event_end_date!==s.event_start_date?" – "+dateText(s.event_end_date):""}</p>
+        <button onclick="chooseStall('${safe(s.id)}')">Request this stall</button>
+      </div></article>`;
   }).join("");
 }
-
-  }
-
-  const a=new Date(start+"T00:00:00");
-  const b=new Date(end+"T00:00:00");
-  const days=Math.round((b-a)/86400000)+1;
-
-  if(days<1){
-    box.textContent="End date must be on or after the start date.";
+function chooseStall(id){
+  const stall=stalls.find(s=>String(s.id)===String(id));
+  if(!isBookable(stall)){
+    notify("This stall is not currently available for booking.","error");
     return;
   }
-
-  const total=days*Number(selectedStall.price_per_day_gbp);
-  box.textContent=`${days} day(s) × £${Number(selectedStall.price_per_day_gbp).toFixed(2)} = £${total.toFixed(2)} GBP.`;
-}
-
-async function submitBooking(){
-  if(!currentUser) return message("Please register or log in before booking.");
-  if(!selectedStall) return message("Please select a stall.");
-
-  const start=document.getElementById("startDate").value;
-  const end=document.getElementById("endDate").value;
-  const name=document.getElementById("bookName").value.trim();
-  const email=document.getElementById("bookEmail").value.trim();
-  const phone=document.getElementById("bookPhone").value.trim();
-  const notes=document.getElementById("bookNotes").value.trim();
-
-  if(!start || !end || !name || !email || !phone){
-    return message("Please complete your dates, name, email and phone number.");
+  if(!currentUser){
+    notify("Please register or sign in before requesting a stall.");
+    showSection("account");
+    return;
   }
-
-  const a=new Date(start+"T00:00:00");
-  const b=new Date(end+"T00:00:00");
-  const days=Math.round((b-a)/86400000)+1;
-
-  if(days<1) return message("Please choose a valid date range.");
-
-const basis = selectedStall.price_basis || "unknown";
-
-let total;
-
-if(basis === "per_event" || basis === "one_time"){
-  total = Number(selectedStall.total_fee_gbp ??
-    selectedStall.price_per_day_gbp ?? 0);
-} else if(basis === "per_day"){
-  total = days * Number(selectedStall.price_per_day_gbp || 0);
-} else {
-  return message("The stall pricing must be confirmed before booking.");
+  selectedStall=stall;
+  $("selectedStallText").textContent=stall.title+" — "+priceText(stall);
+  $("bookingStart").value=stall.event_start_date||"";
+  $("bookingEnd").value=stall.event_end_date||stall.event_start_date||"";
+  calculateTotal();
+  showSection("bookingFormPanel");
 }
-
-if(!Number.isFinite(total) || total <= 0){
-  return message("Invalid stall price.");
-}  
-
-  const {error}=await db.from("bookings").insert({
+function calculateTotal(){
+  const box=$("bookingTotal");
+  if(!selectedStall){box.textContent="Select a stall first.";return null;}
+  const start=$("bookingStart").value;
+  const end=$("bookingEnd").value;
+  if(!start||!end){box.textContent="Choose your dates to calculate the total.";return null;}
+  const startDate=new Date(start+"T00:00:00");
+  const endDate=new Date(end+"T00:00:00");
+  if(endDate<startDate){box.textContent="End date cannot be before start date.";return null;}
+  if(selectedStall.event_start_date && start<selectedStall.event_start_date){
+    box.textContent="Start date is before this event's listed dates.";return null;
+  }
+  if(selectedStall.event_end_date && end>selectedStall.event_end_date){
+    box.textContent="End date is after this event's listed dates.";return null;
+  }
+  const days=Math.floor((endDate-startDate)/86400000)+1;
+  let total;
+  if(selectedStall.price_basis==="per_event"||selectedStall.price_basis==="one_time"){
+    total=Number(selectedStall.total_fee_gbp);
+  }else{
+    total=Number(selectedStall.price_per_day_gbp)*days;
+  }
+  if(!Number.isFinite(total)||total<0){box.textContent="The price for this stall needs confirmation.";return null;}
+  box.textContent=`Duration: ${days} day(s). Booking request total: ${gbp(total)}. No payment is taken at this stage.`;
+  return {days,total,start,end};
+}
+async function submitBooking(event){
+  event.preventDefault();
+  if(!currentUser){notify("Please sign in first.","error");showSection("account");return;}
+  const calc=calculateTotal();
+  if(!calc){notify("Please check your booking dates and price.","error");return;}
+  const {data:latest,error:checkError}=await db.from("public_stall_opportunities")
+    .select("id,available,verification_status,is_authorised_reseller")
+    .eq("id",selectedStall.id).maybeSingle();
+  if(checkError||!latest||!isBookable(latest)){
+    notify("This stall is no longer confirmed as available. Please choose another listing.","error");
+    await loadStalls();showSection("browse");return;
+  }
+  const customerName=$("customerName").value.trim();
+  const customerEmail=$("customerEmail").value.trim();
+  const phone=$("customerPhone").value.trim();
+  if(!customerName||!customerEmail||!phone){notify("Please complete your contact details.","error");return;}
+  const payload={
     stall_id:selectedStall.id,
     customer_id:currentUser.id,
-    start_date:start,
-    end_date:end,
-    days:days,
-    total_gbp:total,
-    customer_name:name,
-    customer_email:email,
+    start_date:calc.start,
+    end_date:calc.end,
+    days:calc.days,
+    total_gbp:calc.total,
+    customer_name:customerName,
+    customer_email:customerEmail,
     phone:phone,
     booking_status:"pending",
     payment_status:"unpaid"
-  });
-
-  if(error) return message("Booking could not be submitted: "+error.message);
-
-  message("Your booking request has been submitted. Total: £"+total.toFixed(2)+". It is pending organiser confirmation. No payment has been taken.");
-  showSection("bookings");
-}
-
-async function loadBookings(){
-  const area=document.getElementById("bookingList");
-  if(!currentUser){
-    area.textContent="Please log in to view your bookings.";
+  };
+  const {error}=await db.from("bookings").insert(payload);
+  if(error){
+    console.error(error);
+    notify("Booking request could not be saved: "+error.message+". Check the bookings table columns and its INSERT policy.","error");
     return;
   }
-
+  $("bookingForm").reset();
+  selectedStall=null;
+  notify("Your booking request has been submitted. It is pending confirmation; no payment has been taken.","success");
+  showSection("mybookings");
+}
+async function loadBookings(){
+  const area=$("bookingArea");
+  if(!currentUser){area.innerHTML='<p class="muted">Please sign in to view your booking requests.</p>';return;}
+  area.innerHTML='<p class="muted">Loading your bookings…</p>';
   const {data,error}=await db.from("bookings")
     .select("*, stalls(title,city,country)")
+    .eq("customer_id",currentUser.id)
     .order("created_at",{ascending:false});
-
   if(error){
-    area.textContent="Could not load bookings: "+error.message;
+    console.error(error);
+    area.innerHTML='<p class="muted">Could not load bookings. Check the bookings SELECT policy and stalls relationship.</p>';
+    notify("Could not load bookings: "+error.message,"error");
     return;
   }
-
-  if(!data || !data.length){
-    area.textContent="You have not made any booking requests yet.";
-    return;
-  }
-
-  area.innerHTML=data.map(b=>`
-    <div class="stall">
-      <h3>${safe(b.stalls?.title || "Stall booking")}</h3>
-      <p>${safe(b.stalls?.city || "")}, ${safe(b.stalls?.country || "")}</p>
-      <p>Dates: ${safe(b.start_date)} to ${safe(b.end_date)}</p>
-      <p>Days: ${safe(b.days)}</p>
-      <p class="price">Total: £${Number(b.total_gbp).toFixed(2)}</p>
-      <p>Booking status: ${safe(b.booking_status)}</p>
-      <p>Payment status: ${safe(b.payment_status)}</p>
-    </div>
-  `).join("");
+  if(!data?.length){area.innerHTML='<p class="muted">You have not submitted any booking requests yet.</p>';return;}
+  area.innerHTML=`<table><thead><tr><th>Stall</th><th>Dates</th><th>Total</th><th>Booking status</th><th>Payment status</th></tr></thead><tbody>${
+    data.map(b=>`<tr><td>${safe(b.stalls?.title||"Stall")}</td><td>${dateText(b.start_date)} – ${dateText(b.end_date)}</td><td>${gbp(b.total_gbp)}</td><td>${safe(b.booking_status||"pending")}</td><td>${safe(b.payment_status||"unpaid")}</td></tr>`).join("")
+  }</tbody></table>`;
 }
-
-async function addStall(){
-  if(!currentUser) return message("Please log in first.");
-  if(!currentProfile) await loadProfile();
-
-  const permitted=currentProfile &&
-    (currentProfile.role==="admin" ||
-     (currentProfile.role==="organiser" && currentProfile.is_approved===true));
-
-  if(!permitted){
-    return message("Your account is not approved to list stalls. Please contact the platform administrator.");
-  }
-
-  const title=document.getElementById("stallTitle").value.trim();
-  const description=document.getElementById("stallDescription").value.trim();
-  const country=document.getElementById("stallCountry").value.trim();
-  const city=document.getElementById("stallCity").value.trim();
-  const venue=document.getElementById("stallVenue").value.trim();
-  const type=document.getElementById("stallType").value;
-  const dimensions=document.getElementById("stallDimensions").value.trim();
-  const price=Number(document.getElementById("stallPrice").value);
-  const imageUrl=document.getElementById("stallImage").value.trim();
-
-  if(!title || !country || !city || !price || price<=0){
-    return message("Enter the stall name, country, city and a valid daily price.");
-  }
-
-  const {error}=await db.from("stalls").insert({
-    created_by:currentUser.id,
-    title,description,country,city,venue,
-    stall_type:type,
-    dimensions,
-    price_per_day_gbp:price,
-    image_url:imageUrl || null,
-    available:true
+async function register(event){
+  event.preventDefault();
+  const fullName=$("regName").value.trim();
+  const phone=$("regPhone").value.trim();
+  const email=$("regEmail").value.trim();
+  const password=$("regPassword").value;
+  if(password.length<8){notify("Use a password with at least 8 characters.","error");return;}
+  const {data,error}=await db.auth.signUp({
+    email,password,
+    options:{data:{full_name:fullName,phone}}
   });
-
-  if(error) return message("Could not add stall: "+error.message);
-
-  message("Stall listing submitted successfully.");
-  document.getElementById("stallTitle").value="";
-  document.getElementById("stallDescription").value="";
-  document.getElementById("stallPrice").value="";
+  if(error){notify("Registration failed: "+error.message,"error");return;}
+  if(data.user && data.session){
+    currentUser=data.user;
+    await loadProfile();
+    updateAccount();
+    notify("Account created. You can now use VENDOR.","success");
+    showSection("browse");
+  }else{
+    notify("Registration received. Check your email to confirm your account, then sign in.","success");
+  }
+  $("registerForm").reset();
+}
+async function login(event){
+  event.preventDefault();
+  const {data,error}=await db.auth.signInWithPassword({
+    email:$("loginEmail").value.trim(),
+    password:$("loginPassword").value
+  });
+  if(error){notify("Sign in failed: "+error.message,"error");return;}
+  currentUser=data.user;
+  await loadProfile();
+  updateAccount();
+  notify("You are signed in.","success");
+  showSection("browse");
   await loadStalls();
+}
+async function logout(){
+  const {error}=await db.auth.signOut();
+  if(error){notify("Sign out failed: "+error.message,"error");return;}
+  currentUser=null;currentProfile=null;updateAccount();
+  $("bookingArea").innerHTML='<p class="muted">Sign in to view your bookings.</p>';
+  notify("You have signed out.","success");
   showSection("browse");
 }
-
+async function resetPassword(){
+  const email=$("loginEmail").value.trim()||prompt("Enter your account email address:");
+  if(!email)return;
+  const redirect=window.location.origin+window.location.pathname;
+  const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:redirect});
+  if(error){notify("Password reset request failed: "+error.message,"error");return;}
+  notify("If the email is registered, a password reset link will be sent. Check your inbox.","success");
+}
+async function addStall(event){
+  event.preventDefault();
+  if(!currentUser){notify("Please sign in first.","error");showSection("account");return;}
+  const role=currentProfile?.role;
+  if(!(role==="admin"||(role==="organiser"&&currentProfile?.is_approved===true))){
+    notify("Only an administrator or an approved organiser can submit stall listings.","error");return;
+  }
+  const title=$("stallTitle").value.trim();
+  const price=Number($("stallPrice").value);
+  if(!title||!Number.isFinite(price)||price<0){notify("Enter a valid title and daily price.","error");return;}
+  const payload={
+    created_by:currentUser.id,
+    title,
+    description:$("stallDescription").value.trim(),
+    country:$("stallCountry").value.trim(),
+    city:$("stallCity").value.trim(),
+    venue:$("stallVenue").value.trim(),
+    stall_type:$("stallType").value.trim(),
+    dimensions:($("stallWidth").value&&$("stallDepth").value)?`${$("stallWidth").value}m x ${$("stallDepth").value}m`:null,
+    width_m:$("stallWidth").value?Number($("stallWidth").value):null,
+    depth_m:$("stallDepth").value?Number($("stallDepth").value):null,
+    price_per_day_gbp:price,
+    image_url:$("stallImage").value.trim()||null,
+    available:false,
+    verification_status:"pending",
+    is_authorised_reseller:false,
+    price_basis:"per_day"
+  };
+  const {error}=await db.from("stalls").insert(payload);
+  if(error){notify("Listing could not be submitted: "+error.message,"error");return;}
+  $("stallForm").reset();
+  notify("Listing submitted for administrator review. It will not appear publicly until it is verified, authorised and marked available.","success");
+}
 async function startApp(){
-  const {data}=await db.auth.getSession();
-  currentUser=data.session?.user || null;
-  if(currentUser) await loadProfile();
+  if(!window.supabase){notify("Supabase library did not load. Check your internet connection and refresh.","error");return;}
+  const {createClient}=window.supabase;
+  db=createClient(SUPABASE_URL,SUPABASE_KEY);
+  const {data,error}=await db.auth.getSession();
+  if(error)console.warn(error.message);
+  currentUser=data?.session?.user||null;
+  if(currentUser)await loadProfile();
   updateAccount();
   await loadStalls();
+  db.auth.onAuthStateChange(async(_event,session)=>{
+    currentUser=session?.user||null;
+    if(currentUser)await loadProfile();else currentProfile=null;
+    updateAccount();
+  });
 }
-
-db.auth.onAuthStateChange(async(event,session)=>{
-  currentUser=session?.user || null;
-  if(currentUser) await loadProfile();
-  else currentProfile=null;
-  updateAccount();
-});
-
+$("registerForm").addEventListener("submit",register);
+$("loginForm").addEventListener("submit",login);
+$("bookingForm").addEventListener("submit",submitBooking);
+$("stallForm").addEventListener("submit",addStall);
 startApp();
 </script>
 </body>
