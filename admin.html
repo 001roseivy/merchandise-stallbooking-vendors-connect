@@ -283,14 +283,18 @@ async function loadBookings() {
   if (error) throw error;
 
   const bookings = data || [];
+document.getElementById("total").textContent = bookings.length;
 
-  document.getElementById("total").textContent = bookings.length;
-  document.getElementById("pending").textContent =
-   bookings.filter(b => b.status === "pending").length;
-  document.getElementById("approved").textContent =
-   bookings.filter(b => b.status === "approved").length;
-  document.getElementById("rejected").textContent =
-   bookings.filter(b => b.status === "rejected").length;
+document.getElementById("pending").textContent =
+ bookings.filter(b => b.booking_status === "pending").length;
+
+document.getElementById("approved").textContent =
+ bookings.filter(b => b.booking_status === "approved").length;
+
+document.getElementById("rejected").textContent =
+ bookings.filter(b => b.booking_status === "rejected").length;
+  
+  
 
   if (bookings.length === 0) {
    area.textContent = "No bookings available.";
