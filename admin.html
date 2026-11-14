@@ -310,7 +310,7 @@ document.getElementById("rejected").textContent =
 
    let actions = "";
 
-   if (b.status === "pending") {
+   if (b.booking_status === "pending") {
     actions = `
      <button class="approve"
       type="button"
@@ -331,7 +331,7 @@ document.getElementById("rejected").textContent =
    return `
     <div class="booking">
      <h3>Booking #${escapeHTML(b.id)}</h3>
-     <p class="status">Status: ${escapeHTML(b.status)}</p>
+    <p class="status">Booking Status: ${escapeHTML(b.booking_status)}</p> 
      ${details}
      ${actions}
     </div>
@@ -378,9 +378,9 @@ async function changeStatus(id, status) {
 
   const { data, error } = await db
    .from("bookings")
-   .update({ status: status })
-   .eq("id", id)
-   .eq("status", "pending")
+   .update({ booking_status: status })
+.eq("id", id)
+.eq("booking_status", "pending")
    .select("id");
 
   if (error) throw error;
