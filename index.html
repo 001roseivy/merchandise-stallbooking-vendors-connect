@@ -94,7 +94,8 @@ const supabaseClient = window.supabase.createClient(
 );
 console.log("Supabase URL:", SUPABASE_URL);
 console.log("Supabase client:", supabaseClient);
-const SITE_URL = window.location.origin;
+const SITE_URL = new URL("./", window.location.href).href;
+const STALLS_URL = new URL("stalls.html", SITE_URL).href;
 let loginMode = false;
 
 const form = document.getElementById("authForm");
@@ -116,9 +117,8 @@ document.getElementById("switchButton").onclick = () => {
   message.textContent = "";
 };
 
-form.addEventListener("submit", async (event) => { 
-  alert("Registration button is working!");
-event.preventDefault()
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
@@ -141,7 +141,7 @@ event.preventDefault()
         throw new Error("Login session was not created. Please try again.");
       }
 
-      window.location.href = SITE_URL + "stalls.html";
+     window.location.href = STALLS_URL; 
 
     } else {
       const { data, error } =
