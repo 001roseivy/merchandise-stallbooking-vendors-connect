@@ -126,78 +126,7 @@ footer{text-align:center;padding:25px;color:#666}
 <footer>VENDOR | European Stall Booking Platform</footer>
 
 <script>
-const SUPABASE_URL = https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/
-const SUPABASE_KEY =sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp ;
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let currentUser = null;
-let currentProfile = null;
-let stalls = [];
-let selectedStall = null;
-
-function showSection(id){
-  document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
-  if(id==="bookings") loadBookings();
-}
-
-function message(text){
-  alert(text);
-}
-
-function safe(value){
-  return String(value ?? "").replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
-}
-
-async function register(){
-  const fullName=document.getElementById("regName").value.trim();
-  const phone=document.getElementById("regPhone").value.trim();
-  const email=document.getElementById("regEmail").value.trim();
-  const password=document.getElementById("regPassword").value;
-
-  if(!fullName || !email || password.length<6){
-    return message("Enter your name, a valid email and a password of at least 6 characters.");
-  }
-
-  const {data,error}=await db.auth.signUp({
-    email,password,
-    options:{
-      data:{full_name:fullName,phone:phone},
-      emailRedirectTo:window.location.href.split("?")[0]
-    }
-  });
-
-  if(error) return message(error.message);
-
-  if(data.session){
-    currentUser=data.user;
-    await loadProfile();
-    updateAccount();
-  }
-
-  message("Registration submitted. Check your email for a confirmation link if email confirmation is enabled.");
-}
-
-async function login(){
-  const email=document.getElementById("loginEmail").value.trim();
-  const password=document.getElementById("loginPassword").value;
-
-  const {data,error}=await db.auth.signInWithPassword({email,password});
-  if(error) return message(error.message);
-
-  currentUser=data.user;
-  await loadProfile();
-  updateAccount();
-  message("You are logged in.");
-}
-
-async function logout(){
-  const {error}=await db.auth.signOut();
-  if(error) return message(error.message);
-  currentUser=null;
   currentProfile=null;
   updateAccount();
   showSection("browse");
@@ -391,7 +320,22 @@ async function submitBooking(){
 
   if(days<1) return message("Please choose a valid date range.");
 
-  const total=days*Number(selectedStall.price_per_day_gbp);
+const basis = selectedStall.price_basis || "unknown";
+
+let total;
+
+if(basis === "per_event" || basis === "one_time"){
+  total = Number(selectedStall.total_fee_gbp ??
+    selectedStall.price_per_day_gbp ?? 0);
+} else if(basis === "per_day"){
+  total = days * Number(selectedStall.price_per_day_gbp || 0);
+} else {
+  return message("The stall pricing must be confirmed before booking.");
+}
+
+if(!Number.isFinite(total) || total <= 0){
+  return message("Invalid stall price.");
+}  
 
   const {error}=await db.from("bookings").insert({
     stall_id:selectedStall.id,
