@@ -289,7 +289,7 @@ async function submitBooking(event){
   }
   const customerName=$("customerName").value.trim();
   const customerEmail=$("customerEmail").value.trim();
-  const phone=$("customerPhone").value.trim();
+  
   if(!customerName||!customerEmail||!phone){notify("Please complete your contact details.","error");return;}
   const payload={
     stall_id:selectedStall.id,
