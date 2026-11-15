@@ -301,12 +301,46 @@ document.getElementById("rejected").textContent =
    return;
   }
 
-  area.innerHTML = bookings.map(b => {
-   const details = Object.entries(b)
-    .filter(([key]) => key !== "id")
-    .map(([key, value]) =>
-     `<p><b>${escapeHTML(key)}:</b> ${escapeHTML(value)}</p>`
-    ).join("");
+  
+area.innerHTML = bookings.map(b => {
+   const details = `
+     <p><b>Booking ID:</b> ${escapeHTML(b.id)}</p>
+     <p><b>Customer:</b> ${escapeHTML(b.customer_name || "N/A")}</p>
+     <p><b>Stall:</b> ${escapeHTML(b.stall_name || "N/A")}</p>
+     <p><b>Booking Status:</b> ${escapeHTML(b.booking_status || "pending")}</p>
+     <p><b>Payment Status:</b> ${escapeHTML(b.payment_status || "unpaid")}</p>
+   `;
+
+   let actions = "";
+
+   if (b.booking_status === "pending") {
+     actions = `
+       <button class="approve"
+        type="button"
+        data-action="approved"
+        data-id="${escapeHTML(b.id)}">
+        Approve
+       </button>
+
+       <button class="reject"
+        type="button"
+        data-action="rejected"
+        data-id="${escapeHTML(b.id)}">
+        Reject
+       </button>
+     `;
+   }
+
+   return `
+     <div class="booking-card">
+       ${details}
+       <div class="booking-actions">
+         ${actions}
+       </div>
+     </div>
+   `;
+ }).join("");
+
 
    let actions = "";
 
