@@ -10,23 +10,28 @@
 
 <style>
 *{box-sizing:border-box}
+
 body{
  margin:0;
  font-family:Arial,sans-serif;
  background:#f3f5f9;
  color:#182238;
 }
+
 header{
  background:#14213d;
  color:white;
  padding:22px;
 }
+
 header h2{margin:0}
+
 main{
  max-width:1100px;
  margin:25px auto;
  padding:15px;
 }
+
 .card{
  background:white;
  padding:20px;
@@ -34,6 +39,7 @@ main{
  margin-bottom:18px;
  box-shadow:0 2px 10px #0001;
 }
+
 input{
  width:100%;
  padding:13px;
@@ -41,6 +47,7 @@ input{
  border-radius:7px;
  margin:8px 0;
 }
+
 button{
  padding:11px 16px;
  border:0;
@@ -49,27 +56,36 @@ button{
  font-weight:bold;
  margin:4px;
 }
-button:disabled{opacity:.5;cursor:not-allowed}
+
+button:disabled{
+ opacity:.5;
+ cursor:not-allowed;
+}
+
 .primary{background:#14213d;color:white}
 .approve{background:#16834a;color:white}
 .reject{background:#c62828;color:white}
 .logout{background:#555;color:white}
+
 .grid{
  display:grid;
  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
  gap:12px;
  margin:18px 0;
 }
+
 .stat{
  background:#eef2f8;
  padding:17px;
  border-radius:9px;
 }
+
 .stat strong{
  display:block;
  font-size:27px;
  margin-bottom:5px;
 }
+
 .booking{
  background:white;
  border:1px solid #e2e7ef;
@@ -78,13 +94,35 @@ button:disabled{opacity:.5;cursor:not-allowed}
  margin:12px 0;
  overflow-wrap:anywhere;
 }
+
+.booking p{
+ margin:9px 0;
+ line-height:1.5;
+}
+
+.booking-actions{
+ margin-top:15px;
+}
+
 .status{
  font-weight:bold;
  text-transform:uppercase;
 }
+
 #dashboard{display:none}
-.message{color:#c62828;overflow-wrap:anywhere}
+
+.message{
+ color:#c62828;
+ overflow-wrap:anywhere;
+}
+
 .muted{color:#667085}
+
+.payment{
+ font-weight:bold;
+ color:#14213d;
+}
+
 </style>
 </head>
 
@@ -97,89 +135,166 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <main>
 
+<!-- ADMIN LOGIN -->
+
 <section id="login" class="card">
+
 <h3>Administrator Login</h3>
-<p class="muted">Sign in using your authorised administrator account.</p>
+
+<p class="muted">
+Sign in using your authorised administrator account.
+</p>
 
 <form id="loginForm">
-<input id="email" type="email" placeholder="Administrator email" autocomplete="username" required>
-<input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
-<button id="loginButton" class="primary" type="submit">Sign In</button>
+
+<input
+ id="email"
+ type="email"
+ placeholder="Administrator email"
+ autocomplete="username"
+ required
+>
+
+<input
+ id="password"
+ type="password"
+ placeholder="Password"
+ autocomplete="current-password"
+ required
+>
+
+<button id="loginButton" class="primary" type="submit">
+Sign In
+</button>
+
 </form>
 
 <p id="message" class="message"></p>
+
 </section>
+
+
+<!-- ADMIN DASHBOARD -->
 
 <section id="dashboard">
 
 <div class="card">
+
 <h3>Welcome, Administrator</h3>
-<button id="refreshButton" class="primary" type="button">Refresh Bookings</button>
-<button id="logoutButton" class="logout" type="button">Sign Out</button>
+
+<button id="refreshButton" class="primary" type="button">
+Refresh Bookings
+</button>
+
+<button id="logoutButton" class="logout" type="button">
+Sign Out
+</button>
+
 <p id="dashboardMessage" class="muted"></p>
+
 </div>
 
+
+<!-- BOOKING STATISTICS -->
+
 <div class="grid">
+
 <div class="stat">
 <strong id="total">0</strong>
 Total bookings
 </div>
+
 <div class="stat">
 <strong id="pending">0</strong>
 Pending
 </div>
+
 <div class="stat">
 <strong id="approved">0</strong>
 Approved
 </div>
+
 <div class="stat">
 <strong id="rejected">0</strong>
 Rejected
 </div>
+
 </div>
 
+
+<!-- BOOKINGS -->
+
 <div class="card">
+
 <h3>Booking Requests</h3>
-<div id="bookings">Loading bookings...</div>
+
+<div id="bookings">
+Loading bookings...
+</div>
+
 </div>
 
 </section>
+
 </main>
+
 
 <script>
 "use strict";
 
+// =====================================
 // SUPABASE CONNECTION
+// =====================================
+
 const SUPABASE_URL =
- "https://ddyornrjnthwkjfvauff.supabase.co";
+"https://ddyornrjnthwkjfvauff.supabase.co";
 
 const SUPABASE_ANON_KEY =
- "sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp";
+"sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp";
 
-const loginSection = document.getElementById("login");
-const dashboard = document.getElementById("dashboard");
-const message = document.getElementById("message");
-const bookingsArea = document.getElementById("bookings");
+const loginSection =
+document.getElementById("login");
+
+const dashboard =
+document.getElementById("dashboard");
+
+const message =
+document.getElementById("message");
+
+const bookingsArea =
+document.getElementById("bookings");
 
 let db = null;
 let busy = false;
 
-// CHECK SUPABASE LIBRARY
+
+// =====================================
+// INITIALISE SUPABASE
+// =====================================
+
 if (!window.supabase || !window.supabase.createClient) {
+
  message.textContent =
-  "Supabase could not load. Check your internet connection and refresh the page.";
+ "Supabase could not load. Check your internet connection and refresh.";
+
 } else {
+
  db = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
  );
 
- // START THE PAGE
  checkSession();
+
 }
 
+
+// =====================================
 // SAFE HTML DISPLAY
+// =====================================
+
 function escapeHTML(value) {
+
  return String(value ?? "").replace(/[&<>"']/g, c => ({
   "&":"&amp;",
   "<":"&lt;",
@@ -187,10 +302,16 @@ function escapeHTML(value) {
   '"':"&quot;",
   "'":"&#39;"
  })[c]);
+
 }
 
-// CHECK ADMINISTRATOR PERMISSIONS
+
+// =====================================
+// VERIFY ADMINISTRATOR
+// =====================================
+
 async function verifyAdministrator(userId) {
+
  const { data: profile, error } = await db
   .from("profiles")
   .select("role,is_approved")
@@ -198,45 +319,68 @@ async function verifyAdministrator(userId) {
   .single();
 
  if (error) {
-  throw new Error("Could not verify administrator profile: " + error.message);
+
+  throw new Error(
+   "Could not verify administrator profile: " +
+   error.message
+  );
+
  }
 
  if (
   profile.role !== "admin" ||
   profile.is_approved !== true
  ) {
+
   throw new Error("Administrator access denied.");
+
  }
 
  return true;
+
 }
 
+
+// =====================================
 // SHOW DASHBOARD
+// =====================================
+
 function showDashboard() {
+
  loginSection.style.display = "none";
  dashboard.style.display = "block";
+
 }
 
-// LOGIN
-document.getElementById("loginForm").addEventListener("submit", async function(event) {
+
+// =====================================
+// ADMIN LOGIN
+// =====================================
+
+document.getElementById("loginForm")
+.addEventListener("submit", async function(event) {
+
  event.preventDefault();
 
  if (!db || busy) return;
 
- const email = document.getElementById("email").value.trim();
- const password = document.getElementById("password").value;
- const loginButton = document.getElementById("loginButton");
+ const email =
+ document.getElementById("email").value.trim();
 
- if (!email || !password) {
-  message.textContent = "Enter your email and password.";
-  return;
- }
+ const password =
+ document.getElementById("password").value;
+
+ const loginButton =
+ document.getElementById("loginButton");
 
  busy = true;
+
  loginButton.disabled = true;
+
  message.textContent = "Signing in...";
 
  try {
+
   const { data, error } = await db.auth.signInWithPassword({
    email: email,
    password: password
@@ -251,154 +395,47 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
   await verifyAdministrator(data.user.id);
 
   message.textContent = "";
+
   showDashboard();
+
   await loadBookings();
 
  } catch (error) {
-  message.textContent = error.message || "Login failed.";
 
-  // Sign out if the account is not authorised.
+  message.textContent =
+   error.message || "Login failed.";
+
   await db.auth.signOut().catch(() => {});
+
  } finally {
+
   busy = false;
   loginButton.disabled = false;
+
  }
+
 });
 
+
+// =====================================
 // LOAD BOOKINGS
+// =====================================
+
 async function loadBookings() {
+
  if (!db) return;
 
  const area = bookingsArea;
+
  area.textContent = "Loading bookings...";
 
- document.getElementById("dashboardMessage").textContent = "";
+ document.getElementById("dashboardMessage")
+ .textContent = "";
 
  try {
-  const { data, error } = await db
-   .from("bookings")
-   .select("*")
-   .order("id", { ascending: false });
 
-  if (error) throw error;
+  // Confirm administrator session
 
-  const bookings = data || [];
-document.getElementById("total").textContent = bookings.length;
-
-document.getElementById("pending").textContent =
- bookings.filter(b => b.booking_status === "pending").length;
-
-document.getElementById("approved").textContent =
- bookings.filter(b => b.booking_status === "approved").length;
-
-document.getElementById("rejected").textContent =
- bookings.filter(b => b.booking_status === "rejected").length;
-  
-  
-
-  if (bookings.length === 0) {
-   area.textContent = "No bookings available.";
-   return;
-  }
-
-  
-area.innerHTML = bookings.map(b => {
-   const details = `
-     <p><b>Booking ID:</b> ${escapeHTML(b.id)}</p>
-     <p><b>Customer:</b> ${escapeHTML(b.customer_name || "N/A")}</p>
-     <p><b>Stall:</b> ${escapeHTML(b.stall_name || "N/A")}</p>
-     <p><b>Booking Status:</b> ${escapeHTML(b.booking_status || "pending")}</p>
-     <p><b>Payment Status:</b> ${escapeHTML(b.payment_status || "unpaid")}</p>
-   `;
-
-   let actions = "";
-
-   if (b.booking_status === "pending") {
-     actions = `
-       <button class="approve"
-        type="button"
-        data-action="approved"
-        data-id="${escapeHTML(b.id)}">
-        Approve
-       </button>
-
-       <button class="reject"
-        type="button"
-        data-action="rejected"
-        data-id="${escapeHTML(b.id)}">
-        Reject
-       </button>
-     `;
-   }
-
-   return `
-     <div class="booking-card">
-       ${details}
-       <div class="booking-actions">
-         ${actions}
-       </div>
-     </div>
-   `;
- }).join("");
-
-
-   let actions = "";
-
-   if (b.booking_status === "pending") {
-    actions = `
-     <button class="approve"
-      type="button"
-      data-action="approved"
-      data-id="${escapeHTML(b.id)}">
-      Approve
-     </button>
-
-     <button class="reject"
-      type="button"
-      data-action="rejected"
-      data-id="${escapeHTML(b.id)}">
-      Reject
-     </button>
-    `;
-   }
-
-   return `
-    <div class="booking">
-     <h3>Booking #${escapeHTML(b.id)}</h3>
-    <p class="status">Booking Status: ${escapeHTML(b.booking_status)}</p> 
-     ${details}
-     ${actions}
-    </div>
-   `;
-  }).join("");
-
- } catch (error) {
-  area.textContent = "Error loading bookings: " + error.message;
- }
-}
-
-// APPROVE OR REJECT BOOKING
-async function changeStatus(id, status) {
- if (!db || busy) return;
-
- if (!["approved", "rejected"].includes(status)) {
-  alert("Invalid booking status.");
-  return;
- }
-
- const confirmed = confirm(
-  "Are you sure you want to " + status + " this booking?"
- );
-
- if (!confirmed) return;
-
- busy = true;
-
- const buttons = bookingsArea.querySelectorAll("button");
- buttons.forEach(button => button.disabled = true);
-
- try {
-  // Confirm that the current session belongs to an administrator.
   const { data: sessionData, error: sessionError } =
    await db.auth.getSession();
 
@@ -408,105 +445,384 @@ async function changeStatus(id, status) {
    throw new Error("Your session has expired. Please sign in again.");
   }
 
-  await verifyAdministrator(sessionData.session.user.id);
+  await verifyAdministrator(
+   sessionData.session.user.id
+  );
+
+  // Retrieve bookings
 
   const { data, error } = await db
    .from("bookings")
-   .update({ booking_status: status })
-.eq("id", id)
-.eq("booking_status", "pending")
+   .select("*")
+   .order("id", { ascending: false });
+
+  if (error) throw error;
+
+  const bookings = data || [];
+
+
+  // UPDATE STATISTICS
+
+  document.getElementById("total").textContent =
+   bookings.length;
+
+  document.getElementById("pending").textContent =
+   bookings.filter(b =>
+    b.booking_status === "pending"
+   ).length;
+
+  document.getElementById("approved").textContent =
+   bookings.filter(b =>
+    b.booking_status === "approved"
+   ).length;
+
+  document.getElementById("rejected").textContent =
+   bookings.filter(b =>
+    b.booking_status === "rejected"
+   ).length;
+
+
+  if (bookings.length === 0) {
+
+   area.textContent = "No bookings available.";
+
+   return;
+
+  }
+
+
+  // DISPLAY ALL BOOKING FIELDS
+
+  area.innerHTML = bookings.map(b => {
+
+   const details = Object.entries(b)
+    .filter(([key]) => key !== "id")
+    .map(([key, value]) => {
+
+     const label = key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, letter => letter.toUpperCase());
+
+     let displayValue;
+
+     if (value === null || value === "") {
+
+      displayValue = "Not recorded";
+
+     } else if (typeof value === "object") {
+
+      displayValue = JSON.stringify(value);
+
+     } else {
+
+      displayValue = String(value);
+
+     }
+
+     const paymentClass =
+      key === "payment_status" ? "payment" : "";
+
+     const statusClass =
+      key === "booking_status" ? "status" : "";
+
+     return `
+      <p class="${paymentClass} ${statusClass}">
+       <b>${escapeHTML(label)}:</b>
+       ${escapeHTML(displayValue)}
+      </p>
+     `;
+
+    }).join("");
+
+
+   // APPROVE AND REJECT BUTTONS
+
+   let actions = "";
+
+   if (b.booking_status === "pending") {
+
+    actions = `
+
+     <div class="booking-actions">
+
+      <button
+       class="approve"
+       type="button"
+       data-action="approved"
+       data-id="${escapeHTML(b.id)}">
+
+       Approve
+
+      </button>
+
+      <button
+       class="reject"
+       type="button"
+       data-action="rejected"
+       data-id="${escapeHTML(b.id)}">
+
+       Reject
+
+      </button>
+
+     </div>
+
+    `;
+
+   }
+
+
+   return `
+
+    <div class="booking">
+
+     <h3>
+      Booking #${escapeHTML(b.id)}
+     </h3>
+
+     ${details}
+
+     ${actions}
+
+    </div>
+
+   `;
+
+  }).join("");
+
+
+ } catch (error) {
+
+  area.textContent =
+   "Error loading bookings: " + error.message;
+
+ }
+
+}
+
+
+// =====================================
+// APPROVE OR REJECT BOOKINGS
+// =====================================
+
+async function changeStatus(id, status) {
+
+ if (!db || busy) return;
+
+ if (!["approved", "rejected"].includes(status)) {
+
+  alert("Invalid booking status.");
+
+  return;
+
+ }
+
+ const confirmed = confirm(
+  "Are you sure you want to " +
+  status +
+  " this booking?"
+ );
+
+ if (!confirmed) return;
+
+ busy = true;
+
+ const buttons =
+ bookingsArea.querySelectorAll("button");
+
+ buttons.forEach(button => {
+  button.disabled = true;
+ });
+
+ try {
+
+  const { data: sessionData, error: sessionError } =
+   await db.auth.getSession();
+
+  if (sessionError) throw sessionError;
+
+  if (!sessionData.session) {
+
+   throw new Error(
+    "Your session has expired. Please sign in again."
+   );
+
+  }
+
+  await verifyAdministrator(
+   sessionData.session.user.id
+  );
+
+
+  // CHANGE BOOKING STATUS ONLY.
+  // PAYMENT STATUS IS NOT MODIFIED.
+
+  const { data, error } = await db
+   .from("bookings")
+   .update({
+    booking_status: status
+   })
+   .eq("id", id)
+   .eq("booking_status", "pending")
    .select("id");
 
   if (error) throw error;
 
   if (!data || data.length === 0) {
+
    throw new Error(
     "No booking was updated. It may no longer be pending, or Supabase permissions may be blocking the update."
    );
+
   }
 
   alert("Booking successfully " + status + ".");
+
   await loadBookings();
 
  } catch (error) {
-  alert("Booking update failed: " + error.message);
+
+  alert(
+   "Booking update failed: " + error.message
+  );
+
  } finally {
+
   busy = false;
-  buttons.forEach(button => button.disabled = false);
- }
-}bookingsArea.addEventListener("click", function(event) {
-  const button = event.target.closest("button[data-action]");
 
-  if (!button) return;
+  buttons.forEach(button => {
+   button.disabled = false;
+  });
 
-  const id = button.dataset.id;
-  const status = button.dataset.action;
-
-  if (!id || !status) return;
-
-  changeStatus(id, status);
-});
-
-// BOOKING BUTTON HANDLER
-
-
-// REFRESH BOOKINGS
-document.getElementById("refreshButton").addEventListener("click", function() {
- loadBookings();
-});
-
-  
-
-// LOGOUT
-async function logout() {
- if (!db) return;
-
- const { error } = await db.auth.signOut();
-
- if (error) {
-  alert("Sign out failed: " + error.message);
-  return;
  }
 
- dashboard.style.display = "none";
- loginSection.style.display = "block";
- document.getElementById("password").value = "";
- message.textContent = "You have signed out.";
 }
 
-document.getElementById("logoutButton").addEventListener("click", logout);
 
+// =====================================
+// BOOKING BUTTON EVENT HANDLER
+// =====================================
+
+bookingsArea.addEventListener("click", function(event) {
+
+ const button = event.target.closest(
+  "button[data-action]"
+ );
+
+ if (!button) return;
+
+ const id = button.dataset.id;
+
+ const status = button.dataset.action;
+
+ if (!id || !status) return;
+
+ changeStatus(id, status);
+
+});
+
+
+// =====================================
+// REFRESH BOOKINGS
+// =====================================
+
+document.getElementById("refreshButton")
+.addEventListener("click", function() {
+
+ loadBookings();
+
+});
+
+
+// =====================================
+// LOGOUT
+// =====================================
+
+async function logout() {
+
+ if (!db || busy) return;
+
+ busy = true;
+
+ try {
+
+  const { error } = await db.auth.signOut();
+
+  if (error) throw error;
+
+  dashboard.style.display = "none";
+
+  loginSection.style.display = "block";
+
+  document.getElementById("password").value = "";
+
+  message.textContent = "You have signed out.";
+
+ } catch (error) {
+
+  alert("Sign out failed: " + error.message);
+
+ } finally {
+
+  busy = false;
+
+ }
+
+}
+
+document.getElementById("logoutButton")
+.addEventListener("click", logout);
+
+
+// =====================================
 // RESTORE EXISTING SESSION
+// =====================================
+
 async function checkSession() {
+
  if (!db) return;
 
  try {
+
   const { data, error } = await db.auth.getSession();
 
   if (error) throw error;
 
   if (!data.session) {
+
    loginSection.style.display = "block";
+
    dashboard.style.display = "none";
+
    return;
+
   }
 
   await verifyAdministrator(data.session.user.id);
 
   showDashboard();
+
   await loadBookings();
 
  } catch (error) {
+
   await db.auth.signOut().catch(() => {});
+
   loginSection.style.display = "block";
+
   dashboard.style.display = "none";
+
   message.textContent = error.message;
+
  }
+
 }
+
 </script>
 
 </body>
 </html>
+
 
 
  
