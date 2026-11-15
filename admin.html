@@ -400,7 +400,7 @@ async function changeStatus(id, status) {
   busy = false;
   buttons.forEach(button => button.disabled = false);
  }
-}document.getElementById("bookingsArea").addEventListener("click", function(event) {
+}bookingsArea.addEventListener("click", function(event) {
   const button = event.target.closest("button[data-action]");
 
   if (!button) return;
