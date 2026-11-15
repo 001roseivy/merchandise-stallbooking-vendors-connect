@@ -419,15 +419,9 @@ async function changeStatus(id, status) {
 // REFRESH BOOKINGS
 document.getElementById("refreshButton").addEventListener("click", function() {
  loadBookings();
-});bookingsArea.addEventListener("click", function(event) {
-  const button = event.target.closest("button[data-action]");
-
-  if (!button) return;
-
-  alert("Button detected: " + button.dataset.action);
-
-  changeStatus(button.dataset.id, button.dataset.action);
 });
+
+  
 
 // LOGOUT
 async function logout() {
