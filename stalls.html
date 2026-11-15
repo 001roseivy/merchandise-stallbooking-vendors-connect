@@ -459,96 +459,240 @@ footer{
 
 <script>
 
+  
+"use strict";
+
+const SUPABASE_URL = "https://ddyornrjnthwkjfvauff.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ehsrcr_9AE_aiY0iTXEHgQ_mt24iwyp";
+
+let db = null;
+let currentUser = null;
+let currentProfile = null;
+let stalls = [];
+let selectedStall = null;
+let bookingRefreshTimer = null;
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+function safe(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[ch]));
+}
+
+function notify(message, type = "info") {
+  const box = $("notice");
+  box.textContent = message;
+  box.className = "notice" +
+    (type === "error" ? " error" :
+     type === "success" ? " success" : "");
+  box.classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function clearNotice() {
+  $("notice").classList.add("hidden");
+}
+
+function showSection(id) {
+  document.querySelectorAll(".panel").forEach(p => {
+    p.classList.remove("active");
+  });
+
+  const target = $(id);
+  if (target) target.classList.add("active");
+
+  clearNotice();
+
+  if (id === "mybookings") {
+    loadBookings();
+  }
+}
+
+function gbp(amount) {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP"
+  }).format(Number(amount || 0));
+}
+
+function dateText(value) {
+  if (!value) return "Dates to be confirmed";
+
+  const d = new Date(value + "T00:00:00");
+
+  return Number.isNaN(d.getTime())
+    ? safe(value)
+    : d.toLocaleDateString("en-GB");
+}
+
+function bookingStatusMessage(status) {
+  const value = String(status || "pending").toLowerCase();
+
+  if (value === "approved") {
+    return {
+      label: "Approved",
+      message: "Your booking has been approved. Please await payment instructions.",
+      css: "status-approved"
+    };
   }
 
-  if(value==="rejected"){
+  if (value === "rejected") {
     return {
-      label:"Rejected",
-      message:"Unfortunately, your booking request was not approved.",
-      css:"status-rejected"
+      label: "Rejected",
+      message: "Unfortunately, your booking request was not approved.",
+      css: "status-rejected"
     };
   }
 
   return {
-    label:"Pending",
-    message:"Your booking request has been received and is awaiting administrator approval.",
-    css:"status-pending"
+    label: "Pending",
+    message: "Your booking request has been received and is awaiting administrator approval.",
+    css: "status-pending"
   };
 }
 
-function priceText(stall){
-  if(stall.price_basis==="per_event" || stall.price_basis==="one_time"){
-    return stall.total_fee_gbp!=null
-      ?gbp(stall.total_fee_gbp)+" per event"
-      :"Price to be confirmed";
+function priceText(stall) {
+  if (stall.price_basis === "per_event" ||
+      stall.price_basis === "one_time") {
+    return stall.total_fee_gbp != null
+      ? gbp(stall.total_fee_gbp) + " per event"
+      : "Price to be confirmed";
   }
 
-  if(stall.price_per_day_gbp!=null){
-    return gbp(stall.price_per_day_gbp)+" per day";
+  if (stall.price_per_day_gbp != null) {
+    return gbp(stall.price_per_day_gbp) + " per day";
   }
 
-  return stall.total_fee_gbp!=null
-    ?gbp(stall.total_fee_gbp)
-    :"Price to be confirmed";
+  return stall.total_fee_gbp != null
+    ? gbp(stall.total_fee_gbp)
+    : "Price to be confirmed";
 }
 
-function isBookable(stall){
-  return stall &&
-    stall.available===true &&
-    stall.verification_status==="verified" &&
-    stall.is_authorised_reseller===true;
+function isBookable(stall) {
+  return !!stall &&
+    stall.available === true &&
+    stall.verification_status === "verified" &&
+    stall.is_authorised_reseller === true;
 }
 
-async function loadProfile(){
-  currentProfile=null;
+async function loadProfile() {
+  currentProfile = null;
 
-  if(!currentUser)return null;
+  if (!currentUser) return null;
 
-  const {data,error}=await db.from("profiles")
+  const { data, error } = await db.from("profiles")
     .select("id,full_name,phone,role,is_approved")
-    .eq("id",currentUser.id)
+    .eq("id", currentUser.id)
     .maybeSingle();
-    notify("Could not load stalls: "+error.message,"error");
+
+  if (error) {
+    console.warn("Profile lookup:", error.message);
+    return null;
+  }
+
+  currentProfile = data;
+  return data;
+}
+
+function updateAccount() {
+  const logged = !!currentUser;
+
+  $("sessionLabel").textContent = logged
+    ? (currentUser.email || "Signed in")
+    : "Not signed in";
+
+  $("authForms").classList.toggle("hidden", logged);
+  $("signedInBox").classList.toggle("hidden", !logged);
+  $("logoutBtn").classList.toggle("hidden", !logged);
+
+  if (logged) {
+    const displayName =
+      currentProfile?.full_name ||
+      currentUser.user_metadata?.full_name ||
+      currentUser.email;
+
+    $("signedInBox").textContent =
+      "Signed in as " + displayName +
+      ". Role: " + (currentProfile?.role || "customer") + ".";
+
+    $("customerName").value =
+      currentProfile?.full_name ||
+      currentUser.user_metadata?.full_name || "";
+
+    $("customerEmail").value = currentUser.email || "";
+
+    $("customerPhone").value =
+      currentProfile?.phone ||
+      currentUser.user_metadata?.phone || "";
+  } else {
+    $("signedInBox").textContent = "";
+  }
+}
+
+async function loadStalls() {
+  const area = $("stallArea");
+  area.innerHTML = '<p class="muted">Loading opportunities…</p>';
+
+  const { data, error } = await db.from("public_stall_opportunities")
+    .select("*")
+    .eq("verification_status", "verified")
+    .eq("is_authorised_reseller", true)
+    .eq("available", true)
+    .order("event_start_date", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    area.innerHTML =
+      '<p class="muted">Listings could not be loaded. Please try again later.</p>';
+    notify("Could not load stalls: " + error.message, "error");
     return;
   }
 
-  stalls=data||[];
+  stalls = data || [];
   renderStalls();
 }
 
-function renderStalls(){
-  const area=$("stallArea");
+function renderStalls() {
+  const area = $("stallArea");
 
-  if(!stalls.length){
-    area.innerHTML=
+  if (!stalls.length) {
+    area.innerHTML =
       '<p class="muted">There are currently no confirmed available stalls. Please check again later.</p>';
     return;
   }
 
-  area.innerHTML=stalls.map(s=>{
-    const dimensions=(s.width_m&&s.depth_m)
-      ?`${safe(s.width_m)} m × ${safe(s.depth_m)} m`
-      :safe(s.dimensions||"Dimensions not stated");
+  area.innerHTML = stalls.map(s => {
+    const dimensions = (s.width_m && s.depth_m)
+      ? `${safe(s.width_m)} m × ${safe(s.depth_m)} m`
+      : safe(s.dimensions || "Dimensions not stated");
 
-    const img=s.image_url && /^https?:\/\//i.test(s.image_url)
-      ?s.image_url:"";
+    const img = s.image_url && /^https?:\/\//i.test(s.image_url)
+      ? s.image_url
+      : "";
 
     return `<article class="stall">
-      ${img?`<img src="${safe(img)}" alt="${safe(s.title)}" loading="lazy" onerror="this.style.display='none'">`:""}
+      ${img ? `<img src="${safe(img)}" alt="${safe(s.title)}" loading="lazy" onerror="this.style.display='none'">` : ""}
       <div class="stall-content">
         <h3>${safe(s.title)}</h3>
         <p class="muted">
-          ${safe(s.venue||"Venue to be confirmed")} ·
-          ${safe(s.city||"")} · ${safe(s.country||"")}
+          ${safe(s.venue || "Venue to be confirmed")} ·
+          ${safe(s.city || "")} · ${safe(s.country || "")}
         </p>
         <div class="price">${safe(priceText(s))}</div>
-        <span class="tag">${safe(s.stall_type||"Stall")}</span>
+        <span class="tag">${safe(s.stall_type || "Stall")}</span>
         <span class="tag">${dimensions}</span>
-        <p class="muted">${safe(s.description||"Contact us for listing details.")}</p>
+        <p class="muted">${safe(s.description || "Contact us for listing details.")}</p>
         <p class="small">
           Event: ${dateText(s.event_start_date)}
-          ${s.event_end_date&&s.event_end_date!==s.event_start_date
-            ?" – "+dateText(s.event_end_date):""}
+          ${s.event_end_date && s.event_end_date !== s.event_start_date
+            ? " – " + dateText(s.event_end_date) : ""}
         </p>
         <button onclick="chooseStall('${safe(s.id)}')">
           Request this stall
@@ -558,162 +702,161 @@ function renderStalls(){
   }).join("");
 }
 
-function chooseStall(id){
-  const stall=stalls.find(s=>String(s.id)===String(id));
+function chooseStall(id) {
+  const stall = stalls.find(s => String(s.id) === String(id));
 
-  if(!isBookable(stall)){
-    notify("This stall is not currently available for booking.","error");
+  if (!isBookable(stall)) {
+    notify("This stall is not currently available for booking.", "error");
     return;
   }
 
-  if(!currentUser){
+  if (!currentUser) {
     notify("Please register or sign in before requesting a stall.");
     showSection("account");
     return;
   }
 
-  selectedStall=stall;
+  selectedStall = stall;
 
-  $("selectedStallText").textContent=
-    stall.title+" — "+priceText(stall);
+  $("selectedStallText").textContent =
+    stall.title + " — " + priceText(stall);
 
-  $("bookingStart").value=stall.event_start_date||"";
-
-  $("bookingEnd").value=
-    stall.event_end_date||stall.event_start_date||"";
+  $("bookingStart").value = stall.event_start_date || "";
+  $("bookingEnd").value =
+    stall.event_end_date || stall.event_start_date || "";
 
   calculateTotal();
   showSection("bookingFormPanel");
 }
 
-function calculateTotal(){
-  const box=$("bookingTotal");
+function calculateTotal() {
+  const box = $("bookingTotal");
 
-  if(!selectedStall){
-    box.textContent="Select a stall first.";
+  if (!selectedStall) {
+    box.textContent = "Select a stall first.";
     return null;
   }
 
-  const start=$("bookingStart").value;
-  const end=$("bookingEnd").value;
+  const start = $("bookingStart").value;
+  const end = $("bookingEnd").value;
 
-  if(!start||!end){
-    box.textContent="Choose your dates to calculate the total.";
+  if (!start || !end) {
+    box.textContent = "Choose your dates to calculate the total.";
     return null;
   }
 
-  const startDate=new Date(start+"T00:00:00");
-  const endDate=new Date(end+"T00:00:00");
+  const startDate = new Date(start + "T00:00:00");
+  const endDate = new Date(end + "T00:00:00");
 
-  if(endDate<startDate){
-    box.textContent="End date cannot be before start date.";
+  if (endDate < startDate) {
+    box.textContent = "End date cannot be before start date.";
     return null;
   }
 
-  if(selectedStall.event_start_date &&
-     start<selectedStall.event_start_date){
-    box.textContent="Start date is before this event's listed dates.";
+  if (selectedStall.event_start_date &&
+      start < selectedStall.event_start_date) {
+    box.textContent = "Start date is before this event's listed dates.";
     return null;
   }
 
-  if(selectedStall.event_end_date &&
-     end>selectedStall.event_end_date){
-    box.textContent="End date is after this event's listed dates.";
+  if (selectedStall.event_end_date &&
+      end > selectedStall.event_end_date) {
+    box.textContent = "End date is after this event's listed dates.";
     return null;
   }
 
-  const days=Math.floor((endDate-startDate)/86400000)+1;
+  const days = Math.floor((endDate - startDate) / 86400000) + 1;
 
   let total;
 
-  if(selectedStall.price_basis==="per_event" ||
-     selectedStall.price_basis==="one_time"){
-    total=Number(selectedStall.total_fee_gbp);
-  }else{
-    total=Number(selectedStall.price_per_day_gbp)*days;
+  if (selectedStall.price_basis === "per_event" ||
+      selectedStall.price_basis === "one_time") {
+    total = Number(selectedStall.total_fee_gbp);
+  } else {
+    total = Number(selectedStall.price_per_day_gbp) * days;
   }
 
-  if(!Number.isFinite(total)||total<0){
-    box.textContent="The price for this stall needs confirmation.";
+  if (!Number.isFinite(total) || total < 0) {
+    box.textContent = "The price for this stall needs confirmation.";
     return null;
   }
 
-  box.textContent=
+  box.textContent =
     `Duration: ${days} day(s). Booking request total: ${gbp(total)}. No payment is taken at this stage.`;
 
-  return {days,total,start,end};
+  return { days, total, start, end };
 }
 
-async function submitBooking(event){
+async function submitBooking(event) {
   event.preventDefault();
 
-  if(!currentUser){
-    notify("Please sign in first.","error");
+  if (!currentUser) {
+    notify("Please sign in first.", "error");
     showSection("account");
     return;
   }
 
-  const calc=calculateTotal();
-
-  if(!calc){
-    notify("Please check your booking dates and price.","error");
+  if (!selectedStall) {
+    notify("Please select a stall first.", "error");
+    showSection("browse");
     return;
   }
 
-  const {data:latest,error:checkError}=
+  const calc = calculateTotal();
+
+  if (!calc) {
+    notify("Please check your booking dates and price.", "error");
+    return;
+  }
+
+  const { data: latest, error: checkError } =
     await db.from("public_stall_opportunities")
       .select("id,available,verification_status,is_authorised_reseller")
-      .eq("id",selectedStall.id)
+      .eq("id", selectedStall.id)
       .maybeSingle();
 
-  if(checkError||!latest||!isBookable(latest)){
+  if (checkError || !latest || !isBookable(latest)) {
     notify(
       "This stall is no longer confirmed as available. Please choose another listing.",
       "error"
     );
-
     await loadStalls();
     showSection("browse");
     return;
   }
 
-  const customerName=$("customerName").value.trim();
-  const customerEmail=$("customerEmail").value.trim();
-  const customerPhone=$("customerPhone").value.trim();
+  const customerName = $("customerName").value.trim();
+  const customerEmail = $("customerEmail").value.trim();
+  const customerPhone = $("customerPhone").value.trim();
 
-  if(!customerName||!customerEmail||!customerPhone){
-    notify("Please complete your contact details.","error");
+  if (!customerName || !customerEmail || !customerPhone) {
+    notify("Please complete your contact details.", "error");
     return;
   }
 
-  const payload={
-    stall_id:selectedStall.id,
-    customer_id:currentUser.id,
-    start_date:calc.start,
-    end_date:calc.end,
-    days:calc.days,
-    total_gbp:calc.total,
-    customer_name:customerName,
-    customer_email:customerEmail,
-    booking_status:"pending",
-    payment_status:"unpaid"
+  const payload = {
+    stall_id: selectedStall.id,
+    customer_id: currentUser.id,
+    start_date: calc.start,
+    end_date: calc.end,
+    days: calc.days,
+    total_gbp: calc.total,
+    customer_name: customerName,
+    customer_email: customerEmail,
+    booking_status: "pending",
+    payment_status: "unpaid"
   };
 
-  const {error}=await db.from("bookings").insert(payload);
+  const { error } = await db.from("bookings").insert(payload);
 
-  if(error){
+  if (error) {
     console.error(error);
-
-    notify(
-      "Booking request could not be saved: "+error.message+
-      ". Check the bookings table columns and its INSERT policy.",
-      "error"
-    );
+    notify("Booking request could not be saved: " + error.message, "error");
     return;
   }
 
   $("bookingForm").reset();
-  selectedStall=null;
+  selectedStall = null;
 
   notify(
     "Your booking request has been submitted successfully. It is awaiting administrator approval. No payment has been taken.",
@@ -723,39 +866,37 @@ async function submitBooking(event){
   showSection("mybookings");
 }
 
-async function loadBookings(){
-  const area=$("bookingArea");
+async function loadBookings() {
+  const area = $("bookingArea");
 
-  if(!currentUser){
-    area.innerHTML=
+  if (!currentUser) {
+    area.innerHTML =
       '<p class="muted">Please sign in to view your booking requests.</p>';
     return;
   }
 
-  area.innerHTML='<p class="muted">Loading your bookings…</p>';
+  area.innerHTML = '<p class="muted">Loading your bookings…</p>';
 
-  const {data,error}=await db.from("bookings")
+  const { data, error } = await db.from("bookings")
     .select("*, stalls(title,city,country)")
-    .eq("customer_id",currentUser.id)
-    .order("created_at",{ascending:false});
+    .eq("customer_id", currentUser.id)
+    .order("created_at", { ascending: false });
 
-  if(error){
+  if (error) {
     console.error(error);
-
-    area.innerHTML=
+    area.innerHTML =
       '<p class="muted">Could not load bookings. Please try again.</p>';
-
-    notify("Could not load bookings: "+error.message,"error");
+    notify("Could not load bookings: " + error.message, "error");
     return;
   }
 
-  if(!data?.length){
-    area.innerHTML=
+  if (!data?.length) {
+    area.innerHTML =
       '<p class="muted">You have not submitted any booking requests yet.</p>';
     return;
   }
 
-  area.innerHTML=`
+  area.innerHTML = `
     <table>
       <thead>
         <tr>
@@ -767,18 +908,322 @@ async function loadBookings(){
         </tr>
       </thead>
       <tbody>
-        ${data.map(b=>{
-          const status=bookingStatusMessage(b.booking_status);
+        ${data.map(b => {
+          const status = bookingStatusMessage(b.booking_status);
 
           return `
             <tr>
               <td>
-                <strong>${safe(b.stalls?.title||"Stall")}</strong>
-                <p class="small">${safe(b.stalls?.city||"")}</p>
+                <strong>${safe(b.stalls?.title || "Stall")}</strong>
+                <p class="small">${safe(b.stalls?.city || "")}</p>
               </td>
-          
-(
+              <td>${dateText(b.start_date)} – ${dateText(b.end_date)}</td>
+              <td>${gbp(b.total_gbp)}</td>
+              <td>
+                <span class="${status.css}">${status.label}</span>
+                <p class="small">${status.message}</p>
+              </td>
+              <td>${safe(b.payment_status || "unpaid")}</td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
 
+    <p class="small">
+      Your booking status refreshes automatically while this page is open.
+    </p>
+
+    <button class="secondary" type="button" onclick="loadBookings()">
+      Refresh bookings
+    </button>
+  `;
+}
+
+async function register(event) {
+  event.preventDefault();
+
+  const fullName = $("regName").value.trim();
+  const phone = $("regPhone").value.trim();
+  const email = $("regEmail").value.trim();
+  const password = $("regPassword").value;
+
+  if (password.length < 8) {
+    notify("Use a password with at least 8 characters.", "error");
+    return;
+  }
+
+  try {
+    const { data, error } = await db.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo:
+          "https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/",
+        data: {
+          full_name: fullName,
+          phone: phone
+        }
+      }
+    });
+
+    if (error) {
+      notify("Registration failed: " + error.message, "error");
+      return;
+    }
+
+    $("registerForm").reset();
+
+    if (data.session && data.user) {
+      currentUser = data.user;
+      await loadProfile();
+      updateAccount();
+
+      notify("Your account has been created successfully.", "success");
+      showSection("browse");
+      await loadStalls();
+    } else {
+      notify(
+        "Registration received. Please check your email and confirm your account. Then return here and sign in using the same email and password.",
+        "success"
+      );
+    }
+
+  } catch (error) {
+    console.error("Registration error:", error);
+    notify("Registration failed: " + error.message, "error");
+  }
+}
+
+async function login(event) {
+  event.preventDefault();
+
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
+
+  if (!email || !password) {
+    notify("Enter your email address and password.", "error");
+    return;
+  }
+
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      notify("Sign in failed: " + error.message, "error");
+      return;
+    }
+
+    if (!data.user || !data.session) {
+      notify("Sign in did not create a session. Please try again.", "error");
+      return;
+    }
+
+    currentUser = data.user;
+
+    await loadProfile();
+    updateAccount();
+
+    notify("You are signed in successfully.", "success");
+
+    showSection("browse");
+    await loadStalls();
+
+  } catch (error) {
+    console.error("Login error:", error);
+    notify("Sign in failed: " + error.message, "error");
+  }
+}
+
+async function logout() {
+  const { error } = await db.auth.signOut();
+
+  if (error) {
+    notify("Sign out failed: " + error.message, "error");
+    return;
+  }
+
+  currentUser = null;
+  currentProfile = null;
+
+  updateAccount();
+
+  $("bookingArea").innerHTML =
+    '<p class="muted">Sign in to view your bookings.</p>';
+
+  notify("You have signed out.", "success");
+  showSection("browse");
+}
+
+async function resetPassword() {
+  const email =
+    $("loginEmail").value.trim() ||
+    prompt("Enter your account email address:");
+
+  if (!email) return;
+
+  const redirect =
+    "https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/";
+
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: redirect
+  });
+
+  if (error) {
+    notify("Password reset request failed: " + error.message, "error");
+    return;
+  }
+
+  notify(
+    "If the email is registered, a password reset link will be sent. Check your inbox.",
+    "success"
+  );
+}
+
+async function addStall(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    notify("Please sign in first.", "error");
+    showSection("account");
+    return;
+  }
+
+  const role = currentProfile?.role;
+
+  if (!(role === "admin" ||
+      (role === "organiser" && currentProfile?.is_approved === true))) {
+    notify(
+      "Only an administrator or an approved organiser can submit stall listings.",
+      "error"
+    );
+    return;
+  }
+
+  const title = $("stallTitle").value.trim();
+  const price = Number($("stallPrice").value);
+
+  if (!title || !Number.isFinite(price) || price < 0) {
+    notify("Enter a valid title and daily price.", "error");
+    return;
+  }
+
+  const payload = {
+    created_by: currentUser.id,
+    title,
+    description: $("stallDescription").value.trim(),
+    country: $("stallCountry").value.trim(),
+    city: $("stallCity").value.trim(),
+    venue: $("stallVenue").value.trim(),
+    stall_type: $("stallType").value.trim(),
+    dimensions:
+      ($("stallWidth").value && $("stallDepth").value)
+        ? `${$("stallWidth").value}m x ${$("stallDepth").value}m`
+        : null,
+    width_m: $("stallWidth").value
+      ? Number($("stallWidth").value) : null,
+    depth_m: $("stallDepth").value
+      ? Number($("stallDepth").value) : null,
+    price_per_day_gbp: price,
+    image_url: $("stallImage").value.trim() || null,
+    available: false,
+    verification_status: "pending",
+    is_authorised_reseller: false,
+    price_basis: "per_day"
+  };
+
+  const { error } = await db.from("stalls").insert(payload);
+
+  if (error) {
+    notify("Listing could not be submitted: " + error.message, "error");
+    return;
+  }
+
+  $("stallForm").reset();
+
+  notify(
+    "Listing submitted for administrator review. It will not appear publicly until it is verified, authorised and marked available.",
+    "success"
+  );
+}
+
+async function startApp() {
+  if (!window.supabase) {
+    notify(
+      "Supabase library did not load. Check your internet connection and refresh.",
+      "error"
+    );
+    return;
+  }
+
+  try {
+    const { createClient } = window.supabase;
+    db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const { data, error } = await db.auth.getSession();
+
+    if (error) throw error;
+
+    currentUser = data?.session?.user || null;
+
+    if (currentUser) {
+      await loadProfile();
+    }
+
+    updateAccount();
+    await loadStalls();
+
+    db.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user || null;
+
+      if (!currentUser) {
+        currentProfile = null;
+        updateAccount();
+        return;
+      }
+
+      updateAccount();
+
+      // Run profile lookup after the auth callback has finished.
+      setTimeout(async () => {
+        if (currentUser && currentUser.id === session.user.id) {
+          await loadProfile();
+          updateAccount();
+        }
+      }, 0);
+    });
+
+    if (bookingRefreshTimer) {
+      clearInterval(bookingRefreshTimer);
+    }
+
+    bookingRefreshTimer = setInterval(() => {
+      const bookingPanel = $("mybookings");
+
+      if (
+        currentUser &&
+        bookingPanel &&
+        bookingPanel.classList.contains("active")
+      ) {
+        loadBookings();
+      }
+    }, 15000);
+
+  } catch (error) {
+    console.error("Startup error:", error);
+    notify("VENDOR could not start: " + error.message, "error");
+  }
+}
+
+$("registerForm").addEventListener("submit", register);
+$("loginForm").addEventListener("submit", login);
+$("bookingForm").addEventListener("submit", submitBooking);
+$("stallForm").addEventListener("submit", addStall);
+
+startApp();
 </script>
 </body>
 </html>
