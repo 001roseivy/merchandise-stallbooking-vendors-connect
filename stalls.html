@@ -1002,24 +1002,23 @@ if (error) throw error;
   $("registerForm").reset();
 }
 
-async function login(event){
-  event.preventDefault();
-
-  const {data,error}=await db.auth.signInWithPassword({
-    email:$("loginEmail").value.trim(),
-    password:$("loginPassword").value
+async function login(){
+  const { data, error } = await db.auth.signInWithPassword({
+    email: $("loginEmail").value.trim(),
+    password: $("loginPassword").value
   });
 
   if(error){
-    notify("Sign in failed: "+error.message,"error");
+    notify("Sign in failed: " + error.message, "error");
     return;
   }
 
-  currentUser=data.user;
+  currentUser = data.user;
+
   await loadProfile();
   updateAccount();
 
-  notify("You are signed in.","success");
+  notify("You are signed in.", "success");
   showSection("browse");
   await loadStalls();
 }
