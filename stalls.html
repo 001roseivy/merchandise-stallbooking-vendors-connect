@@ -847,21 +847,48 @@ async function submitBooking(event) {
     payment_status: "unpaid"
   };
 
+  // Save the booking first
   const { error } = await db.from("bookings").insert(payload);
 
   if (error) {
     console.error(error);
-    notify("Booking request could not be saved: " + error.message, "error");
+    notify(
+      "Booking request could not be saved: " + error.message,
+      "error"
+    );
     return;
+  }
+
+  // Send administrator email notification
+  const { error: emailError } =
+    await db.functions.invoke("notify-new-booking", {
+      body: {
+        customer_id: currentUser.id,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        stall_title: selectedStall.title,
+        start_date: calc.start,
+        end_date: calc.end,
+        total_gbp: calc.total
+      }
+    });
+
+  if (emailError) {
+    console.error("Email notification error:", emailError);
+
+    notify(
+      "Booking saved successfully, but the email notification could not be sent.",
+      "error"
+    );
+  } else {
+    notify(
+      "Booking submitted successfully! Your request is awaiting administrator approval. No payment has been taken.",
+      "success"
+    );
   }
 
   $("bookingForm").reset();
   selectedStall = null;
-
-  notify(
-    "Your booking request has been submitted successfully. It is awaiting administrator approval. No payment has been taken.",
-    "success"
-  );
 
   showSection("mybookings");
 }
