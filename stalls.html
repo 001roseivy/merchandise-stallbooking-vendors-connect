@@ -961,13 +961,21 @@ async function register(event){
     return;
   }
 
-  const {data,error}=await db.auth.signUp({
-    email,
-    password,
-    options:{
-      data:{
-        full_name:fullName,
-        phone:phone
+
+const { data, error } = await db.auth.signUp({
+  email,
+  password,
+  options: {
+    emailRedirectTo: "https://001roseivy.github.io/merchandise-stallbooking-vendors-connect/",
+    data: {
+      full_name: fullName,
+      phone: phone
+    }
+  }
+});
+
+if (error) throw error;
+
       }
     }
   });
