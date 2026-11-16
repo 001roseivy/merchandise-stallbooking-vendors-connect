@@ -1,4 +1,4 @@
->
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -204,10 +204,10 @@ footer{
 </header>
 
 <nav>
-  <button onclick="showSection('browse')">Browse stalls</button>
-  <button class="secondary" onclick="showSection('account')">Account</button>
-  <button class="secondary" onclick="showSection('mybookings')">My bookings</button>
-  <button class="secondary" onclick="showSection('organiser')">List a stall</button>
+  <button type="button" onclick="showSection('browse')">Browse stalls</button>
+  <button type="button" class="secondary" onclick="showSection('account')">Account</button>
+  <button type="button" class="secondary" onclick="showSection('mybookings')">My bookings</button>
+  <button type="button" class="secondary" onclick="showSection('organiser')">List a stall</button>
 </nav>
 
 <main>
@@ -232,7 +232,7 @@ footer{
           Only verified, authorised listings with confirmed availability appear here.
         </p>
       </div>
-      <button class="secondary" onclick="loadStalls()">Refresh</button>
+      <button type="button" class="secondary" onclick="loadStalls()">Refresh</button>
     </div>
 
     <div id="stallArea" class="grid">
@@ -308,7 +308,7 @@ footer{
     </div>
 
     <div class="actions">
-      <button id="logoutBtn" class="secondary hidden" onclick="logout()">Sign out</button>
+      <button type="button" id="logoutBtn" class="secondary hidden" onclick="logout()">Sign out</button>
     </div>
 
   </section>
@@ -334,7 +334,7 @@ footer{
         <h2>Request this stall</h2>
         <p id="selectedStallText" class="muted"></p>
       </div>
-      <button class="secondary" onclick="showSection('browse')">Back to listings</button>
+      <button type="button" class="secondary" onclick="showSection('browse')">Back to listings</button>
     </div>
 
     <form id="bookingForm">
@@ -458,8 +458,6 @@ footer{
 </footer>
 
 <script>
-
-  
 "use strict";
 
 const SUPABASE_URL = "https://ddyornrjnthwkjfvauff.supabase.co";
@@ -640,23 +638,41 @@ async function loadStalls() {
   const area = $("stallArea");
   area.innerHTML = '<p class="muted">Loading opportunities…</p>';
 
-  const { data, error } = await db.from("public_stall_opportunities")
-    .select("*")
-    .eq("verification_status", "verified")
-    .eq("is_authorised_reseller", true)
-    .eq("available", true)
-    .order("event_start_date", { ascending: true });
-
-  if (error) {
-    console.error(error);
+  if (!db) {
     area.innerHTML =
-      '<p class="muted">Listings could not be loaded. Please try again later.</p>';
-    notify("Could not load stalls: " + error.message, "error");
+      '<p class="muted">Database connection is not ready. Please refresh.</p>';
     return;
   }
 
-  stalls = data || [];
-  renderStalls();
+  try {
+    const { data, error } = await db.from("public_stall_opportunities")
+      .select("*")
+      .eq("verification_status", "verified")
+      .eq("is_authorised_reseller", true)
+      .eq("available", true)
+      .order("event_start_date", { ascending: true });
+
+    if (error) {
+      console.error("Stall loading error:", error);
+
+      area.innerHTML =
+        '<p class="muted">Listings could not be loaded. Please try again later.</p>';
+
+      notify("Could not load stalls: " + error.message, "error");
+      return;
+    }
+
+    stalls = data || [];
+    renderStalls();
+
+  } catch (error) {
+    console.error("Unexpected stall loading error:", error);
+
+    area.innerHTML =
+      '<p class="muted">An unexpected error occurred while loading stalls.</p>';
+
+    notify("Stall loading failed: " + error.message, "error");
+  }
 }
 
 function renderStalls() {
@@ -694,7 +710,7 @@ function renderStalls() {
           ${s.event_end_date && s.event_end_date !== s.event_start_date
             ? " – " + dateText(s.event_end_date) : ""}
         </p>
-        <button onclick="chooseStall('${safe(s.id)}')">
+        <button type="button" onclick="chooseStall('${safe(s.id)}')">
           Request this stall
         </button>
       </div>
@@ -847,11 +863,12 @@ async function submitBooking(event) {
     payment_status: "unpaid"
   };
 
-  // Save the booking first
+  // Save the booking first.
   const { error } = await db.from("bookings").insert(payload);
 
   if (error) {
-    console.error(error);
+    console.error("Booking error:", error);
+
     notify(
       "Booking request could not be saved: " + error.message,
       "error"
@@ -859,10 +876,11 @@ async function submitBooking(event) {
     return;
   }
 
-  // Send administrator email notification
-  const { error: emailError } =
-     {
-   db.functions.invoke("rapid-endpoint", {   body: {
+  // Send administrator email notification.
+  const { error: emailError } = await db.functions.invoke(
+    "rapid-endpoint",
+    {
+      body: {
         customer_id: currentUser.id,
         customer_name: customerName,
         customer_email: customerEmail,
@@ -871,7 +889,8 @@ async function submitBooking(event) {
         end_date: calc.end,
         total_gbp: calc.total
       }
-    });
+    }
+  );
 
   if (emailError) {
     console.error("Email notification error:", emailError);
@@ -910,9 +929,11 @@ async function loadBookings() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
+    console.error("Booking loading error:", error);
+
     area.innerHTML =
       '<p class="muted">Could not load bookings. Please try again.</p>';
+
     notify("Could not load bookings: " + error.message, "error");
     return;
   }
@@ -961,7 +982,7 @@ async function loadBookings() {
       Your booking status refreshes automatically while this page is open.
     </p>
 
-    <button class="secondary" type="button" onclick="loadBookings()">
+    <button type="button" class="secondary" onclick="loadBookings()">
       Refresh bookings
     </button>
   `;
@@ -1075,6 +1096,7 @@ async function logout() {
 
   currentUser = null;
   currentProfile = null;
+  selectedStall = null;
 
   updateAccount();
 
@@ -1252,5 +1274,6 @@ $("stallForm").addEventListener("submit", addStall);
 
 startApp();
 </script>
+
 </body>
 </html>
