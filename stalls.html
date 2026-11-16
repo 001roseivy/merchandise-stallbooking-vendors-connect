@@ -861,8 +861,8 @@ async function submitBooking(event) {
 
   // Send administrator email notification
   const { error: emailError } =
-    await db.functions.invoke("notify-new-booking", {
-      body: {
+     {
+   db.functions.invoke("rapid-endpoint", {   body: {
         customer_id: currentUser.id,
         customer_name: customerName,
         customer_email: customerEmail,
