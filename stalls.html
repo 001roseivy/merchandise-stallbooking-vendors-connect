@@ -656,19 +656,18 @@ async function submitBooking(event){
     return;
   }
 
-  const payload={
-    stalls_id:String(selectedStall.id),
-    customer_id:currentUser.id,
-    start_date:calc.start,
-    end_date:calc.end,
-    days:calc.days,
-    total_gbp:calc.total,
-    customer_name:customerName,
-    customer_email:customerEmail,
-    phone:phone,
-    booking_status:"pending",
-    payment_status:"unpaid"
-  };
+ const payload={
+  stalls_id:String(selectedStall.id),
+  customer_id:currentUser.id,
+  start_date:calc.start,
+  end_date:calc.end,
+  days:calc.days,
+  total_gbp:calc.total,
+  customer_name:customerName,
+  customer_email:customerEmail,
+  booking_status:"pending",
+  payment_status:"unpaid"
+}; 
 
   const {data:booking,error}=await db
     .from("bookings")
